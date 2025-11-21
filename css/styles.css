@@ -1,0 +1,828 @@
+body {
+    margin: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* background-image: url('');  */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background: linear-gradient(to bottom, #80bfff, #191616);
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(50px);
+    touch-action: none;
+    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+html {
+    height: -webkit-fill-available;
+}
+
+/* Hide the default file input */
+input[type="file"] {
+    display: none;
+    /* Hides the default input */
+}
+
+/* Style the label */
+.custom-file-upload {
+    display: inline-block;
+    position: absolute;
+    padding: 10px 15px;
+    cursor: pointer;
+    background-color: #4caf5000;
+    color: white;
+    /* White text */
+    border-radius: 5px;
+    /* Rounded corners */
+    border: 1px solid #ffffff;
+    /* Border color matches background */
+    top: 10px;
+    left: 10px;
+}
+
+.custom-file-upload:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.custom-file-upload svg {
+    width: 20px;
+    height: 20px;
+}
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    left: -70px;
+}
+
+@media (max-width: 1400px) {
+    .container {
+        scale: 0.9;
+    }
+}
+
+@media (max-width: 1200px) {
+    .container {
+        scale: 0.8;
+    }
+}
+
+@media (max-width: 1100px) {
+    .container {
+        scale: 0.6;
+    }
+}
+
+@media (max-width: 1000px) {
+    .container {
+        scale: 0.5;
+    }
+}
+
+
+@media (max-width: 800px) {
+    .container {
+        scale: 0.4;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        scale: 0.25;
+    }
+}
+
+@media (max-width: 400px) {
+    .container {
+        scale: 0.23;
+    }
+}
+
+.album-cover {
+    display: none;
+}
+
+.vinyl-record {
+    width: 700px;
+    height: 700px;
+    background-image: url('../images/vinyl.png');
+    background-size: cover;
+    background-position: center;
+    border-radius: 50%;
+    position: relative;
+    margin-left: -100px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    -webkit-user-drag: none;
+    overflow: hidden;
+    /* Ensure image stays circular */
+}
+
+.text-title,
+.text-author {
+    display: none;
+}
+
+.vinyl-cover {
+    /* This was the center label, but now we want the whole vinyl to be the image? 
+       The user said "I want it to be circular, the image to be circular... I was talking about the vinyl, not the cover."
+       But also "I want to remove that square thing".
+       If I put the image on .vinyl-record, it spins? 
+       The .vinyl-cover spins inside .vinyl-record currently?
+       Let's check HTML.
+       <div class="vinyl-record"> <div class="vinyl-cover">...</div> </div>
+       vinyl-cover has animation: rotate.
+       vinyl-record does NOT rotate.
+       So if I want the image to spin, I should put it on .vinyl-cover and make .vinyl-cover fill the .vinyl-record?
+       Or make .vinyl-record spin?
+       
+       Current CSS:
+       .vinyl-cover { width: 320px; height: 320px; ... animation: rotate ... }
+       
+       If I want the *whole* vinyl to be the image and spin:
+       1. Make .vinyl-cover size 100% of .vinyl-record?
+       2. Or apply image to .vinyl-record and make IT spin?
+       
+       Let's try making .vinyl-cover fill the parent and hold the image.
+    */
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    position: absolute;
+    animation: rotate 8s linear infinite;
+    -webkit-user-drag: none;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.armholder {
+    width: 180px;
+    height: 300px;
+    position: absolute;
+    right: -85px;
+    top: 10px;
+
+    z-index: -2;
+    border-radius: 100px;
+    border-width: 5px;
+    background-color: rgba(0, 0, 0, 0.25);
+    box-shadow: 5px 10px 10px rgba(0, 0, 0, 0.5);
+}
+
+.armholder-circle {
+    width: 170px;
+    height: 170px;
+    position: absolute;
+    right: -80px;
+    top: 15px;
+
+    z-index: -1;
+    border-radius: 100px;
+    border-width: 5px;
+    background-color: rgba(0, 0, 0, 0.25);
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
+}
+
+.tonearm {
+    width: 100px;
+    height: 600px;
+    background-image: url('../images/tonearm.png');
+    /* Replace with tonearm image URL */
+    background-size: contain;
+    background-repeat: no-repeat;
+    position: absolute;
+    right: -50px;
+    top: 60px;
+    transform-origin: 50% 10%;
+    cursor: grab;
+    -webkit-user-drag: none;
+    user-select: none;
+    /* box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5); */
+    filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.8));
+    z-index: 100;
+    /* Ensure it's on top */
+    pointer-events: auto;
+}
+
+.tonearm:active {
+    cursor: grabbing;
+}
+
+/* Keyframes for swapping z-index */
+@keyframes swapZIndex {
+    0% {
+        z-index: 0;
+        /* Card 1 is on top */
+        transform: translateX(0);
+        transform: rotate(-5deg);
+    }
+
+    50% {
+        z-index: 1;
+        /* Card 2 comes to the front */
+        transform: translateX(-200px);
+        /* Slight lift effect */
+    }
+
+    100% {
+        z-index: 1;
+        /* Card 1 back on top */
+        transform: translateX(250px);
+        /* transform: rotate(-5deg); */
+    }
+}
+
+@keyframes reverseZIndex {
+    0% {
+        z-index: 1;
+        /* Card 1 is on top */
+        transform: translateX(250px);
+        /* transform: rotate(-5deg); */
+    }
+
+    50% {
+        z-index: 0;
+        /* Card 2 comes to the front */
+        transform: translateX(-200px);
+        /* Slight lift effect */
+    }
+
+    100% {
+        z-index: 0;
+        /* Card 1 back on top */
+        transform: translateX(0);
+        transform: rotate(-5deg);
+    }
+}
+
+.swap {
+    animation: swapZIndex 0.5s forwards;
+    /* Trigger the animation */
+}
+
+.reverse {
+    animation: reverseZIndex 0.5s forwards;
+    /* Play the animation in reverse */
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+    pointer-events: none;
+    /* Позволяет кликать через оверлей */
+}
+
+.loading-spinner,
+.loading-text {
+    pointer-events: auto;
+    /* Возвращаем события этим элементам */
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: white;
+    margin-top: 20px;
+    font-size: 1.2em;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Стили для меню */
+.menu-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    /* Увеличим z-index */
+}
+
+.menu-toggle {
+    background: none;
+    border: 1px solid white;
+    border-radius: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    cursor: pointer;
+    color: white;
+    transition: background-color 0.3s;
+    filter: drop-shadow(0px 0px 2px gray);
+}
+
+.menu-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.menu-items {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 200px;
+}
+
+.menu-items.active {
+    display: flex;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border-radius: 5px;
+    font-size: large;
+}
+
+.menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-item svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Стили для модальных окон */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: rgba(30, 30, 30, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    color: white;
+}
+
+.modal h2 {
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+.modal input,
+.modal textarea {
+    width: 95%;
+    padding: 10px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    color: white;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background: #3498db;
+    color: white;
+    transition: background-color 0.3s;
+}
+
+.modal-btn:hover {
+    background: #2980b9;
+}
+
+/* Стили для уведомлений */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 3000;
+    max-width: 350px;
+    transform: translateX(120%);
+    transition: transform 0.3s ease-in-out;
+    display: none;
+}
+
+.notification.show {
+    display: flex;
+    transform: translateX(0);
+}
+
+.notification-content {
+    background: rgba(30, 30, 30, 0.9);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.notification.error .notification-content {
+    background: rgba(220, 53, 69, 0.9);
+}
+
+.notification.success .notification-content {
+    background: rgba(40, 167, 69, 0.9);
+}
+
+.notification-message {
+    flex-grow: 1;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.7;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+.volume-container {
+    position: absolute;
+    bottom: 130px;
+    right: -225px;
+    z-index: 1000;
+    /* display: flex;
+    align-items: center; */
+    gap: 10px;
+    rotate: -90deg;
+    z-index: -1;
+}
+
+#volumeSlider {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 300px;
+    height: 8px;
+    background: #000000;
+    /* border-radius: 0px; */
+    outline: none;
+    box-shadow: 0px 0px 5px #232323;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 30px;
+    height: 60px;
+    background: #343232;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: -2px 0px 6px black;
+}
+
+#volumeSlider::-moz-range-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 30px;
+    height: 60px;
+    background: #343232;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: -2px 0px 6px black;
+}
+
+.volume-indicator {
+    height: 30px;
+    display: flex;
+}
+
+.volume-indicator>* {
+    z-index: -100;
+}
+
+.desc-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    /* Увеличим z-index */
+}
+
+.desc-toggle {
+    background: none;
+    border: 1px solid white;
+    border-radius: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    cursor: pointer;
+    color: white;
+    transition: background-color 0.3s;
+    filter: drop-shadow(0px 0px 2px gray);
+}
+
+.desc-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.desc-items {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 300px;
+}
+
+.desc-items.active {
+    display: flex;
+}
+
+.desc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    color: white;
+    background: none;
+    border: none;
+    transition: background-color 0.3s;
+    border-radius: 5px;
+    font-size: large;
+}
+
+.clock-container {
+    position: absolute;
+    bottom: 0px;
+    left: 20px;
+    z-index: 1000;
+    /* display: flex;
+    align-items: center; */
+}
+
+#clock {
+    color: white;
+    font-size: 7em;
+    font-family: sans-serif;
+    filter: drop-shadow(0px 0px 5px gray);
+}
+
+/* Controls Container */
+.controls-container {
+    position: absolute;
+    bottom: 20px;
+    /* Adjusted to be visible */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 30px;
+    backdrop-filter: blur(10px);
+    color: white;
+    width: 400px;
+    z-index: 100;
+}
+
+.control-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#progressBar {
+    flex-grow: 1;
+    height: 4px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+#progressBar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+#currentTime,
+#duration {
+    font-size: 0.8em;
+    font-family: monospace;
+    min-width: 40px;
+    text-align: center;
+}
+
+/* Settings Modal Styles */
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked+.slider {
+    background-color: #2196F3;
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked+.slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Video Player Styles */
+#vinylTrack {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    /* Below tonearm (100) but above vinyl if needed */
+    display: none;
+    /* Hidden by default */
+    pointer-events: none;
+    /* Let clicks pass through if needed, or auto */
+}
+
+.container.video-mode #vinylTrack {
+    display: block;
+    width: 700px;
+    /* Match vinyl size or album cover size */
+    height: 400px;
+    /* 16:9 aspect ratio roughly, or square? User said square. */
+    /* Let's try to mimic the album cover look */
+    width: 500px;
+    height: 500px;
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    left: -250px;
+    /* Adjust position to be where the album cover was? */
+    /* The original album cover was: width: 720px; height: 720px; transform: rotate(-5deg); */
+    /* The vinyl record is: width: 700px; height: 700px; margin-left: -100px; */
+
+    /* Let's position it to the left of the vinyl, like the album cover was */
+    left: -300px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-5deg);
+    background: black;
+}
+
+/* When video is shown, maybe move the vinyl to the right? */
+.container.video-mode .vinyl-record {
+    /* Keep it spinning */
+    margin-left: 100px;
+    /* Move it right */
+    transition: margin-left 0.5s;
+}
+
+.container.video-mode #vinylTrack {
+    /* Ensure iframe fills the div */
+    border: none;
+}
+
+.container.video-mode #vinylTrack iframe {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+}
