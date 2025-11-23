@@ -73,7 +73,6 @@ export class VinylPlayer {
         this.updateLanguage(this.currentLang);
         this.checkHoliday();
         this.updateSettings();
-        this.setupRippleEffect(); // Add ripple effect
 
         // PWA Install Prompt
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -536,6 +535,19 @@ export class VinylPlayer {
             }
 
             this.updateTrackInfo(track);
+            
+            // Extract Chapters
+            this.chapters = [];
+            if (track.file) {
+                this.extractChapters(track.file).then(chapters => {
+                    this.chapters = chapters;
+                    if (this.chapters.length > 0) {
+                        // Optional: Notify user
+                        console.log(`Found ${this.chapters.length} chapters`);
+                    }
+                });
+            }
+
             this.showNotification(translations[this.currentLang].playingTrack, "success");
 
         } else {
@@ -548,7 +560,17 @@ export class VinylPlayer {
             if (this.player) {
                 this.player.loadVideoById(id);
                 this.updateTrackInfo(id); // Pass ID for YouTube
+                this.showNotification(translations[this.currentLang].playingTrack, "success");
             }
+        }
+    }
+
+    play() {
+        if (this.isLocalFile) {
+            const media = this.isVideo ? this.localVideo : this.localAudio;
+            media.play();
+        } else if (this.player) {
+            this.player.playVideo();
         }
     }
 
@@ -627,13 +649,6 @@ export class VinylPlayer {
 
             // Extract metadata
             if (track.file) {
-                // Check for M4b chapters
-                if (track.file.name.toLowerCase().endsWith('.m4b')) {
-                    this.readChaptersFromM4b(track.file);
-                } else {
-                    this.chapters = []; // Reset if not m4b
-                }
-
                 jsmediatags.read(track.file, {
                     onSuccess: (tag) => {
                         const tags = tag.tags;
@@ -851,6 +866,30 @@ export class VinylPlayer {
         }
     }
 
+    checkHoliday() {
+        if (!this.elements.showHolidayToggle || !this.elements.showHolidayToggle.checked) return;
+
+        const holiday = this.holidayManager.checkHoliday();
+        if (holiday) {
+            // Show Banner
+            let banner = document.querySelector('.holiday-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.className = 'holiday-banner';
+                document.body.appendChild(banner);
+            }
+            banner.innerHTML = `${holiday.icon} ${translations[this.currentLang].holidayMode} (${holiday.name})`;
+
+            // Auto-load playlist if queue is empty
+            if (this.playlistManager.queue.length === 0 && !this.isPlaying) {
+                const playlistId = this.holidayManager.getHolidayPlaylist(holiday);
+                if (playlistId) {
+                    this.loadFromUrl(`https://www.youtube.com/playlist?list=${playlistId}`);
+                }
+            }
+        }
+    }
+
     toggleChapterMenu() {
         if (this.elements.chapterMenu.style.display === 'flex') {
             this.elements.chapterMenu.style.display = 'none';
@@ -860,53 +899,86 @@ export class VinylPlayer {
         }
     }
 
-    readChaptersFromM4b(file) {
-        const mp4boxfile = MP4Box.createFile();
+    extractChapters(file) {
+        return new Promise((resolve) => {
+            const mp4boxfile = MP4Box.createFile();
+            let foundInfo = false;
 
-        mp4boxfile.onReady = (info) => {
-            if (info.chapters && info.chapters.length > 0) {
-                this.chapters = info.chapters.map((c, i) => ({
-                    index: i + 1,
-                    title: c.title || `Chapter ${i + 1}`,
-                    start: c.start_time / c.timescale
-                }));
-                this.renderChapters();
-                if (this.elements.showChaptersToggle) {
-                    this.elements.showChaptersToggle.disabled = false;
-                    this.elements.showChaptersToggle.checked = true;
-                    this.updateSettings();
+            mp4boxfile.onReady = (info) => {
+                foundInfo = true;
+                let chapters = [];
+                
+                if (info.chapters && info.chapters.length > 0) {
+                    chapters = info.chapters.map((ch, i) => ({
+                        index: i + 1,
+                        title: ch.title || `Chapter ${i + 1}`,
+                        startSeconds: ch.start_time / info.timescale
+                    }));
                 }
-            } else {
-                this.chapters = [];
-            }
-        };
+                
+                resolve(chapters);
+            };
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const arrayBuffer = e.target.result;
-            arrayBuffer.fileStart = 0;
-            mp4boxfile.appendBuffer(arrayBuffer);
-            mp4boxfile.flush();
-        };
-        reader.readAsArrayBuffer(file);
+            mp4boxfile.onError = (e) => {
+                console.warn("MP4Box Error:", e);
+                resolve([]);
+            };
+
+            // Read in chunks
+            const chunkSize = 1024 * 1024 * 2; // 2MB
+            let offset = 0;
+
+            const readChunk = () => {
+                if (foundInfo || offset >= file.size) return;
+
+                const reader = new FileReader();
+                const blob = file.slice(offset, offset + chunkSize);
+                
+                reader.onload = (e) => {
+                    if (foundInfo) return;
+                    
+                    const buffer = e.target.result;
+                    buffer.fileStart = offset;
+                    
+                    try {
+                        mp4boxfile.appendBuffer(buffer);
+                    } catch (err) {
+                        console.error("MP4Box Append Error:", err);
+                        resolve([]);
+                        return;
+                    }
+                    
+                    offset += chunkSize;
+                    readChunk();
+                };
+                reader.readAsArrayBuffer(blob);
+            };
+
+            readChunk();
+        });
     }
 
     renderChapters() {
         this.elements.chapterList.innerHTML = '';
 
-        if (!this.chapters || this.chapters.length === 0) return;
+        if (this.chapters.length === 0) {
+            this.elements.chapterList.innerHTML = '<div class="chapter-item"><span>No chapters found</span></div>';
+            return;
+        }
 
         this.chapters.forEach(chapter => {
             const div = document.createElement('div');
-            div.className = 'chapter-item liquid-glass liquid-glass-sm';
+            div.className = 'chapter-item';
             div.innerHTML = `
                 <span>${chapter.title}</span>
-                <span class="chapter-time">${this.formatTime(chapter.start)}</span>
+                <span class="chapter-time">${this.formatTime(chapter.startSeconds)}</span>
             `;
             div.addEventListener('click', () => {
                 if (this.isLocalFile) {
                     const media = this.isVideo ? this.localVideo : this.localAudio;
-                    media.currentTime = chapter.start;
+                    media.currentTime = chapter.startSeconds;
+                } else if (this.player) {
+                    this.player.seekTo(chapter.startSeconds, true);
                 }
                 this.elements.chapterMenu.style.display = 'none';
                 this.elements.descToggle.setAttribute('data-chapter', chapter.title);
@@ -915,25 +987,16 @@ export class VinylPlayer {
         });
     }
 
-    checkHoliday() {
-        if (!this.elements.showHolidayToggle || !this.elements.showHolidayToggle.checked) return;
 
-        const holiday = this.holidayManager.checkHoliday();
-        if (holiday) {
-            let banner = document.querySelector('.holiday-banner');
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.className = 'holiday-banner';
-                document.body.appendChild(banner);
-            }
-            banner.innerHTML = `${holiday.icon} ${translations[this.currentLang].holidayMode} (${holiday.name})`;
+    async installApp() {
+        if (!this.deferredPrompt) return;
 
-            if (this.playlistManager.queue.length === 0 && !this.isPlaying) {
-                const playlistId = this.holidayManager.getHolidayPlaylist(holiday);
-                if (playlistId) {
-                    this.loadFromUrl(`https://www.youtube.com/playlist?list=${playlistId}`);
-                }
-            }
+        this.deferredPrompt.prompt();
+        const { outcome } = await this.deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        this.deferredPrompt = null;
+        if (this.elements.installBtn) {
+            this.elements.installBtn.style.display = 'none';
         }
     }
 }

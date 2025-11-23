@@ -1,309 +1,164 @@
 body {
     margin: 0;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* background-image: url('');  */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background: linear-gradient(to bottom, #80bfff, #191616);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
+    backdrop-filter: blur(50px);
     touch-action: none;
-    height: 100vh;
-    overflow: hidden;
-    color: #333;
+    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
-/* --- COMPONENT STYLES --- */
-
-/* Menu Toggle (Top Left) */
-.menu-toggle {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: none;
-    cursor: pointer;
-    z-index: 1000;
-    background: #fff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease;
+html {
+    height: -webkit-fill-available;
 }
 
-.menu-toggle:hover {
-    transform: scale(1.05);
-    background: #f0f0f0;
-}
-
-.menu-toggle svg {
-    stroke: #333;
-}
-
-/* Menu Items (The Dropdown/Panel) */
-.menu-items {
-    position: absolute;
-    top: 80px;
-    left: 20px;
-    width: 220px;
-    border-radius: 8px;
-    padding: 10px;
+/* Hide the default file input */
+input[type="file"] {
     display: none;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 1000;
-    background: #fff;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    /* Hides the default input */
 }
 
-.menu-items.active {
-    display: flex;
-    animation: fadeIn 0.3s ease;
-}
-
-.menu-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    color: #333;
-    border: none;
-    cursor: pointer;
-    text-decoration: none;
-    font-weight: 500;
-    border-radius: 4px;
-    background: transparent;
-    transition: background 0.2s;
-    font-size: 0.95rem;
-}
-
-.menu-item:hover {
-    background: #f5f5f5;
-}
-
-.menu-item svg,
-.menu-item .icon {
-    width: 20px;
-    height: 20px;
-    stroke: #333;
-    fill: none;
-}
-
-/* Top Right Buttons (Help, Lyrics/Music) */
-.desc-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1001;
-    display: flex;
-    gap: 12px;
-}
-
-.desc-toggle,
-.lyrics-toggle {
-    height: 40px;
-    padding: 0 16px;
-    border-radius: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: none;
-    cursor: pointer;
-    gap: 8px;
-    background: #fff;
-    color: #333;
-    font-weight: 500;
-    font-size: 0.9rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    transition: all 0.2s;
-}
-
-.desc-toggle:hover,
-.lyrics-toggle:hover {
-    background: #f0f0f0;
-}
-
-.desc-toggle svg,
-.lyrics-toggle svg {
-    stroke: #333;
-    width: 18px;
-    height: 18px;
-}
-
-/* Tonearm Base */
-.armholder {
+/* Style the label */
+.custom-file-upload {
+    display: inline-block;
     position: absolute;
-    top: 50px;
-    right: 60px;
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.1);
-    /* Subtle shadow for base */
-    z-index: 5;
-}
-
-.armholder-circle {
-    /* The inner mechanical part */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #444, #111);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-    z-index: 6;
-}
-
-/* Controls Container */
-.controls-container {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 12px 30px;
-    border-radius: 50px;
-    background: #fff;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-    z-index: 100;
-}
-
-.control-btn {
-    background: transparent;
-    border: none;
-    color: #333;
+    padding: 10px 15px;
     cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s, background 0.2s;
+    background-color: #4caf5000;
+    color: white;
+    /* White text */
+    border-radius: 5px;
+    /* Rounded corners */
+    border: 1px solid #ffffff;
+    /* Border color matches background */
+    top: 10px;
+    left: 10px;
 }
 
-.control-btn:hover {
-    background: #f0f0f0;
+.custom-file-upload:hover {
+    background-color: rgba(255, 255, 255, 0.2);
     transform: scale(1.1);
 }
 
-.control-btn svg {
-    fill: #333;
-    width: 24px;
-    height: 24px;
+.custom-file-upload svg {
+    width: 20px;
+    height: 20px;
 }
 
-#playBtn svg {
-    width: 32px;
-    height: 32px;
-}
-
-/* Time & Progress */
-#currentTime,
-#duration {
-    font-family: monospace;
-    font-size: 0.9rem;
-    color: #555;
-    min-width: 40px;
-    text-align: center;
-}
-
-#progressBar {
-    width: 200px;
-    height: 4px;
-    appearance: none;
-    background: #ddd;
-    border-radius: 2px;
-    cursor: pointer;
-}
-
-#progressBar::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    background: #333;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-}
-
-/* Volume Slider */
-.volume-container {
-    position: absolute;
-    bottom: 150px;
-    right: 50px;
-    width: 40px;
-    height: 200px;
-    border-radius: 20px;
+.container {
     display: flex;
-    justify-content: center;
     align-items: center;
-    background: #fff;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    z-index: 90;
+    justify-content: center;
+    position: relative;
+    left: -70px;
 }
 
-/* Hide the old indicators */
-.volume-indicator {
+@media (max-width: 1400px) {
+    .container {
+        scale: 0.9;
+    }
+}
+
+@media (max-width: 1200px) {
+    .container {
+        scale: 0.8;
+    }
+}
+
+@media (max-width: 1100px) {
+    .container {
+        scale: 0.6;
+    }
+}
+
+@media (max-width: 1000px) {
+    .container {
+        scale: 0.5;
+    }
+}
+
+
+@media (max-width: 800px) {
+    .container {
+        scale: 0.4;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        scale: 0.25;
+    }
+}
+
+@media (max-width: 400px) {
+    .container {
+        scale: 0.23;
+    }
+}
+
+.album-cover {
     display: none;
 }
 
-#volumeSlider {
-    width: 160px;
-    /* Length of slider */
-    height: 4px;
-    transform: rotate(-90deg);
-    appearance: none;
-    background: #ddd;
-    border-radius: 2px;
-    outline: none;
-}
-
-#volumeSlider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    background: #333;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-/* Vinyl & Tonearm */
-.container {
-    position: relative;
-    transform: scale(0.85);
-}
-
 .vinyl-record {
-    width: 600px;
-    height: 600px;
+    width: 700px;
+    height: 700px;
     background-image: url('../images/vinyl.png');
     background-size: cover;
+    background-position: center;
     border-radius: 50%;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
     position: relative;
+    margin-left: -100px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    -webkit-user-drag: none;
+    overflow: hidden;
+    /* Ensure image stays circular */
+}
+
+.text-title,
+.text-author {
+    display: none;
 }
 
 .vinyl-cover {
+    /* This was the center label, but now we want the whole vinyl to be the image? 
+       The user said "I want it to be circular, the image to be circular... I was talking about the vinyl, not the cover."
+       But also "I want to remove that square thing".
+       If I put the image on .vinyl-record, it spins? 
+       The .vinyl-cover spins inside .vinyl-record currently?
+       Let's check HTML.
+       <div class="vinyl-record"> <div class="vinyl-cover">...</div> </div>
+       vinyl-cover has animation: rotate.
+       vinyl-record does NOT rotate.
+       So if I want the image to spin, I should put it on .vinyl-cover and make .vinyl-cover fill the .vinyl-record?
+       Or make .vinyl-record spin?
+       
+       Current CSS:
+       .vinyl-cover { width: 320px; height: 320px; ... animation: rotate ... }
+       
+       If I want the *whole* vinyl to be the image and spin:
+       1. Make .vinyl-cover size 100% of .vinyl-record?
+       2. Or apply image to .vinyl-record and make IT spin?
+       
+       Let's try making .vinyl-cover fill the parent and hold the image.
+    */
     width: 100%;
     height: 100%;
+    top: 0;
+    left: 0;
     border-radius: 50%;
     background-size: cover;
     background-position: center;
     position: absolute;
     animation: rotate 8s linear infinite;
-    animation-play-state: paused;
+    -webkit-user-drag: none;
 }
 
 @keyframes rotate {
@@ -316,23 +171,234 @@ body {
     }
 }
 
+.armholder {
+    width: 180px;
+    height: 300px;
+    position: absolute;
+    right: -85px;
+    top: 10px;
+
+    z-index: -2;
+    border-radius: 100px;
+    border-width: 5px;
+    background-color: rgba(0, 0, 0, 0.25);
+    box-shadow: 5px 10px 10px rgba(0, 0, 0, 0.5);
+}
+
+.armholder-circle {
+    width: 170px;
+    height: 170px;
+    position: absolute;
+    right: -80px;
+    top: 15px;
+
+    z-index: -1;
+    border-radius: 100px;
+    border-width: 5px;
+    background-color: rgba(0, 0, 0, 0.25);
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
+}
+
 .tonearm {
     width: 100px;
     height: 600px;
     background-image: url('../images/tonearm.png');
+    /* Replace with tonearm image URL */
     background-size: contain;
     background-repeat: no-repeat;
     position: absolute;
-    right: -40px;
-    top: 0;
+    right: -50px;
+    top: 60px;
     transform-origin: 50% 10%;
-    transform: rotate(0deg);
-    transition: transform 1s ease;
-    z-index: 10;
-    filter: drop-shadow(10px 10px 20px rgba(0, 0, 0, 0.5));
+    cursor: grab;
+    -webkit-user-drag: none;
+    user-select: none;
+    /* box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5); */
+    filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.8));
+    z-index: 100;
+    /* Ensure it's on top */
+    pointer-events: auto;
 }
 
-/* Modals */
+.tonearm:active {
+    cursor: grabbing;
+}
+
+/* Keyframes for swapping z-index */
+@keyframes swapZIndex {
+    0% {
+        z-index: 0;
+        /* Card 1 is on top */
+        transform: translateX(0);
+        transform: rotate(-5deg);
+    }
+
+    50% {
+        z-index: 1;
+        /* Card 2 comes to the front */
+        transform: translateX(-200px);
+        /* Slight lift effect */
+    }
+
+    100% {
+        z-index: 1;
+        /* Card 1 back on top */
+        transform: translateX(250px);
+        /* transform: rotate(-5deg); */
+    }
+}
+
+@keyframes reverseZIndex {
+    0% {
+        z-index: 1;
+        /* Card 1 is on top */
+        transform: translateX(250px);
+        /* transform: rotate(-5deg); */
+    }
+
+    50% {
+        z-index: 0;
+        /* Card 2 comes to the front */
+        transform: translateX(-200px);
+        /* Slight lift effect */
+    }
+
+    100% {
+        z-index: 0;
+        /* Card 1 back on top */
+        transform: translateX(0);
+        transform: rotate(-5deg);
+    }
+}
+
+.swap {
+    animation: swapZIndex 0.5s forwards;
+    /* Trigger the animation */
+}
+
+.reverse {
+    animation: reverseZIndex 0.5s forwards;
+    /* Play the animation in reverse */
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+    pointer-events: none;
+    /* Позволяет кликать через оверлей */
+}
+
+.loading-spinner,
+.loading-text {
+    pointer-events: auto;
+    /* Возвращаем события этим элементам */
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: white;
+    margin-top: 20px;
+    font-size: 1.2em;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Стили для меню */
+.menu-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    /* Увеличим z-index */
+}
+
+.menu-toggle {
+    background: none;
+    border: 1px solid white;
+    border-radius: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    cursor: pointer;
+    color: white;
+    transition: background-color 0.3s;
+    filter: drop-shadow(0px 0px 2px gray);
+}
+
+.menu-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.menu-items {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 200px;
+}
+
+.menu-items.active {
+    display: flex;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    border-radius: 5px;
+    font-size: large;
+}
+
+.menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menu-item svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Стили для модальных окон */
 .modal {
     display: none;
     position: fixed;
@@ -340,52 +406,36 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
     z-index: 2000;
     justify-content: center;
     align-items: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.modal.show {
-    display: flex;
-    opacity: 1;
 }
 
 .modal-content {
-    padding: 30px;
+    background: rgba(30, 30, 30, 0.9);
+    padding: 20px;
+    border-radius: 10px;
     width: 90%;
     max-width: 500px;
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    color: #333;
-    transform: scale(0.95);
-    transition: transform 0.3s;
-}
-
-.modal.show .modal-content {
-    transform: scale(1);
+    color: white;
 }
 
 .modal h2 {
-    margin-top: 0;
-    color: #111;
+    margin: 0 0 20px 0;
+    text-align: center;
 }
 
-.modal input[type="text"],
-.modal textarea,
-.modal select {
-    width: 100%;
-    padding: 12px;
+.modal input,
+.modal textarea {
+    width: 95%;
+    padding: 10px;
     margin-bottom: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background: #f9f9f9;
-    color: #333;
-    font-size: 1rem;
-    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    color: white;
 }
 
 .modal-buttons {
@@ -395,138 +445,281 @@ body {
 }
 
 .modal-btn {
-    padding: 10px 20px;
+    padding: 8px 16px;
     border: none;
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
-    font-weight: 600;
-    background: #333;
-    color: #fff;
-    transition: background 0.2s;
+    background: #3498db;
+    color: white;
+    transition: background-color 0.3s;
 }
 
 .modal-btn:hover {
-    background: #555;
+    background: #2980b9;
 }
 
-/* Chapter Menu */
-.chapter-menu {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 400px;
-    max-height: 70vh;
-    flex-direction: column;
-    z-index: 2000;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    color: #333;
-}
-
-.chapter-header {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 700;
-}
-
-.chapter-list {
-    padding: 10px;
-    overflow-y: auto;
-}
-
-.chapter-item {
-    padding: 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    transition: background 0.2s;
-}
-
-.chapter-item:hover {
-    background: #f5f5f5;
-}
-
-.chapter-time {
-    opacity: 0.6;
-    font-size: 0.9em;
-}
-
-/* Video Mode */
-#vinylTrack,
-#localVideo {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 500px;
-    height: 500px;
-    border-radius: 20px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    z-index: 20;
-    display: none;
-}
-
-.container.video-mode #vinylTrack,
-.container.video-mode #localVideo {
-    display: block;
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Hide file input */
-input[type="file"] {
-    display: none;
-}
-
-/* Notification */
+/* Стили для уведомлений */
 .notification {
     position: fixed;
     top: 20px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-150%);
+    right: 20px;
     z-index: 3000;
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    max-width: 350px;
+    transform: translateX(120%);
+    transition: transform 0.3s ease-in-out;
+    display: none;
 }
 
 .notification.show {
-    transform: translateX(-50%) translateY(0);
+    display: flex;
+    transform: translateX(0);
 }
 
 .notification-content {
-    background: #333;
-    color: #fff;
-    padding: 12px 24px;
-    border-radius: 50px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    background: rgba(30, 30, 30, 0.9);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 5px;
     display: flex;
-    gap: 10px;
     align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Settings Toggles */
+.notification.error .notification-content {
+    background: rgba(220, 53, 69, 0.9);
+}
+
+.notification.success .notification-content {
+    background: rgba(40, 167, 69, 0.9);
+}
+
+.notification-message {
+    flex-grow: 1;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.7;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+.volume-container {
+    position: absolute;
+    bottom: 130px;
+    right: -225px;
+    z-index: 1000;
+    /* display: flex;
+    align-items: center; */
+    gap: 10px;
+    rotate: -90deg;
+    z-index: -1;
+}
+
+#volumeSlider {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 300px;
+    height: 8px;
+    background: #000000;
+    /* border-radius: 0px; */
+    outline: none;
+    box-shadow: 0px 0px 5px #232323;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 30px;
+    height: 60px;
+    background: #343232;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: -2px 0px 6px black;
+}
+
+#volumeSlider::-moz-range-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 30px;
+    height: 60px;
+    background: #343232;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: -2px 0px 6px black;
+}
+
+.volume-indicator {
+    height: 30px;
+    display: flex;
+}
+
+.volume-indicator>* {
+    z-index: -100;
+}
+
+.desc-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    /* Увеличим z-index */
+}
+
+.desc-toggle {
+    background: none;
+    border: 1px solid white;
+    border-radius: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    cursor: pointer;
+    color: white;
+    transition: background-color 0.3s;
+    filter: drop-shadow(0px 0px 2px gray);
+}
+
+.desc-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.desc-items {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 300px;
+}
+
+.desc-items.active {
+    display: flex;
+}
+
+.desc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    color: white;
+    background: none;
+    border: none;
+    transition: background-color 0.3s;
+    border-radius: 5px;
+    font-size: large;
+}
+
+.clock-container {
+    position: absolute;
+    bottom: 0px;
+    left: 20px;
+    z-index: 1000;
+    /* display: flex;
+    align-items: center; */
+}
+
+#clock {
+    color: white;
+    font-size: 7em;
+    font-family: sans-serif;
+    filter: drop-shadow(0px 0px 5px gray);
+}
+
+/* Controls Container */
+.controls-container {
+    position: absolute;
+    bottom: 20px;
+    /* Adjusted to be visible */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 30px;
+    backdrop-filter: blur(10px);
+    color: white;
+    width: 400px;
+    z-index: 100;
+}
+
+.control-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#progressBar {
+    flex-grow: 1;
+    height: 4px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+#progressBar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+#currentTime,
+#duration {
+    font-size: 0.8em;
+    font-family: monospace;
+    min-width: 40px;
+    text-align: center;
+}
+
+/* Settings Modal Styles */
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+}
+
+/* Toggle Switch */
 .switch {
     position: relative;
     display: inline-block;
-    width: 40px;
-    height: 24px;
+    width: 60px;
+    height: 34px;
 }
 
 .switch input {
@@ -544,32 +737,250 @@ input[type="file"] {
     bottom: 0;
     background-color: #ccc;
     transition: .4s;
-    border-radius: 34px;
 }
 
 .slider:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
     background-color: white;
     transition: .4s;
-    border-radius: 50%;
 }
 
 input:checked+.slider {
-    background-color: #333;
+    background-color: #2196F3;
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px #2196F3;
 }
 
 input:checked+.slider:before {
-    transform: translateX(16px);
+    transform: translateX(26px);
 }
 
-.setting-item {
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Video Player Styles */
+#vinylTrack {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    /* Below tonearm (100) but above vinyl if needed */
+    display: none;
+    /* Hidden by default */
+    pointer-events: none;
+    /* Let clicks pass through if needed, or auto */
+}
+
+.container.video-mode #vinylTrack {
+    display: block;
+    width: 700px;
+    /* Match vinyl size or album cover size */
+    height: 400px;
+    /* 16:9 aspect ratio roughly, or square? User said square. */
+    /* Let's try to mimic the album cover look */
+    width: 500px;
+    height: 500px;
+    border-radius: 10px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    left: -250px;
+    /* Adjust position to be where the album cover was? */
+    /* The original album cover was: width: 720px; height: 720px; transform: rotate(-5deg); */
+    /* The vinyl record is: width: 700px; height: 700px; margin-left: -100px; */
+
+    /* Let's position it to the left of the vinyl, like the album cover was */
+    left: -300px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-5deg);
+    background: black;
+}
+
+/* When video is shown, maybe move the vinyl to the right? */
+.container.video-mode .vinyl-record {
+    /* Keep it spinning */
+    margin-left: 100px;
+    /* Move it right */
+    transition: margin-left 0.5s;
+}
+
+.container.video-mode #vinylTrack {
+    /* Ensure iframe fills the div */
+    border: none;
+}
+
+.container.video-mode #vinylTrack iframe {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+}
+
+/* Video Player */
+#localVideo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 80%;
+    max-height: 80%;
+    z-index: 5;
+    /* Below tonearm but above vinyl */
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.container.video-mode #localVideo {
+    display: block !important;
+}
+
+/* Lyrics Toggle */
+.lyrics-toggle {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 50%;
+    transition: background 0.3s;
+    margin-left: 10px;
+}
+
+.lyrics-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.desc-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Lyrics Modal */
+.lyrics-content {
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    text-align: center;
+    margin: 20px 0;
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 1.6;
+}
+
+/* Language Select */
+#languageSelect {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+/* Long Question Mark (Chapter Mode) */
+.desc-toggle.long-mode {
+    width: auto;
+    padding: 0 15px;
+    border-radius: 20px;
+    aspect-ratio: auto;
+}
+
+.desc-toggle.long-mode::after {
+    content: " / " attr(data-chapter);
+    font-size: 14px;
+    margin-left: 5px;
+}
+
+/* Chapter Menu */
+.chapter-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px;
+    border-radius: 15px;
+    z-index: 1001;
+    display: none;
+    flex-direction: column;
+    width: 300px;
+    max-height: 80vh;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.chapter-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+.chapter-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chapter-item {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+    display: flex;
+    justify-content: space-between;
+}
+
+.chapter-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.chapter-time {
+    opacity: 0.6;
+    font-size: 0.9em;
+}
+
+/* Holiday Banner */
+.holiday-banner {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(45deg, #ff0000, #00ff00);
+    padding: 10px 20px;
+    border-radius: 20px;
+    color: white;
+    font-weight: bold;
+    z-index: 1000;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.5s ease-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+@keyframes slideDown {
+    from {
+        top: -50px;
+        opacity: 0;
+    }
+
+    to {
+        top: 20px;
+        opacity: 1;
+    }
 }

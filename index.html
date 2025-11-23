@@ -54,7 +54,6 @@
     <!-- /Search Engine Optimisation-->
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/jsmediatags.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mp4box.js/0.5.2/mp4box.all.min.js"></script>
 </head>
 
 <body draggable="false">
@@ -76,8 +75,7 @@
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
                 <span>Load from file</span>
-                <input type="file" id="fileInput" accept=".mp3, .flac, .wav, .ogg, .aif, .mp4, .webm, .m4v, .m4b"
-                    multiple="">
+                <input type="file" id="fileInput" accept=".mp3, .flac, .wav, .ogg, .aif, .mp4, .webm, .m4v" multiple="">
             </label>
             <button class="menu-item" id="loadUrlBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
@@ -313,6 +311,7 @@
         </div>
     </div>
 
+    <script src="js/mp4box.all.min.js"></script>
     <script type="module" src="js/main.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
