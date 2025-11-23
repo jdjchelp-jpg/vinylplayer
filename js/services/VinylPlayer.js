@@ -535,7 +535,7 @@ export class VinylPlayer {
             }
 
             this.updateTrackInfo(track);
-            
+
             // Extract Chapters
             this.chapters = [];
             if (track.file) {
@@ -907,15 +907,39 @@ export class VinylPlayer {
             mp4boxfile.onReady = (info) => {
                 foundInfo = true;
                 let chapters = [];
-                
+
+                console.log("MP4Box Info:", info);
+
+                // Strategy 1: MP4Box built-in chapters (Track References)
                 if (info.chapters && info.chapters.length > 0) {
+                    console.log("Found chapters via info.chapters");
                     chapters = info.chapters.map((ch, i) => ({
                         index: i + 1,
                         title: ch.title || `Chapter ${i + 1}`,
                         startSeconds: ch.start_time / info.timescale
                     }));
                 }
-                
+
+                // Strategy 2: Look for 'chpl' atom (Nero/Apple) in moov.udta
+                if (chapters.length === 0) {
+                    const chpl = this.findBox(mp4boxfile.moov, 'chpl');
+                    if (chpl && chpl.entries) {
+                        console.log("Found chapters via 'chpl' atom");
+                        // chpl start_time is in 100-nanosecond units (10^-7) usually, OR movie timescale?
+                        // The spec says: "start time is an integer expressed in the movie timescale"
+                        // But Nero chapters sometimes use different scales.
+                        // Usually it matches info.timescale.
+
+                        chapters = chpl.entries.map((entry, i) => ({
+                            index: i + 1,
+                            title: entry.chapter_name || `Chapter ${i + 1}`,
+                            startSeconds: entry.start_time / info.timescale
+                        }));
+                    }
+                }
+
+                // Strategy 3: Look for 'chap' atom? (Less common, usually a track ref)
+
                 resolve(chapters);
             };
 
@@ -933,13 +957,13 @@ export class VinylPlayer {
 
                 const reader = new FileReader();
                 const blob = file.slice(offset, offset + chunkSize);
-                
+
                 reader.onload = (e) => {
                     if (foundInfo) return;
-                    
+
                     const buffer = e.target.result;
                     buffer.fileStart = offset;
-                    
+
                     try {
                         mp4boxfile.appendBuffer(buffer);
                     } catch (err) {
@@ -947,7 +971,7 @@ export class VinylPlayer {
                         resolve([]);
                         return;
                     }
-                    
+
                     offset += chunkSize;
                     readChunk();
                 };
@@ -956,6 +980,18 @@ export class VinylPlayer {
 
             readChunk();
         });
+    }
+
+    findBox(box, type) {
+        if (!box) return null;
+        if (box.type === type) return box;
+        if (box.boxes) {
+            for (let i = 0; i < box.boxes.length; i++) {
+                const found = this.findBox(box.boxes[i], type);
+                if (found) return found;
+            }
+        }
+        return null;
     }
 
     renderChapters() {
