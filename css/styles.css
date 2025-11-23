@@ -1,409 +1,194 @@
 body {
     margin: 0;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    /* background-image: url('');  */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background: linear-gradient(to bottom, #80bfff, #191616);
-    font-family: Arial, sans-serif;
+    font-family: 'Inter', Arial, sans-serif;
+    /* Modern font */
     display: flex;
     justify-content: center;
     align-items: center;
-    backdrop-filter: blur(50px);
     touch-action: none;
     height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow: hidden;
 }
 
 html {
     height: -webkit-fill-available;
 }
 
-/* Hide the default file input */
-input[type="file"] {
-    display: none;
-    /* Hides the default input */
-}
+/* --- LIQUID GLASS SYSTEM --- */
 
-/* Style the label */
-.custom-file-upload {
-    display: inline-block;
-    position: absolute;
-    padding: 10px 15px;
-    cursor: pointer;
-    background-color: #4caf5000;
-    color: white;
-    /* White text */
-    border-radius: 5px;
-    /* Rounded corners */
-    border: 1px solid #ffffff;
-    /* Border color matches background */
-    top: 10px;
-    left: 10px;
-}
-
-.custom-file-upload:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
-}
-
-.custom-file-upload svg {
-    width: 20px;
-    height: 20px;
-}
-
-.container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Base Liquid Glass Class */
+.liquid-glass {
     position: relative;
-    left: -70px;
-}
-
-@media (max-width: 1400px) {
-    .container {
-        scale: 0.9;
-    }
-}
-
-@media (max-width: 1200px) {
-    .container {
-        scale: 0.8;
-    }
-}
-
-@media (max-width: 1100px) {
-    .container {
-        scale: 0.6;
-    }
-}
-
-@media (max-width: 1000px) {
-    .container {
-        scale: 0.5;
-    }
-}
-
-
-@media (max-width: 800px) {
-    .container {
-        scale: 0.4;
-    }
-}
-
-@media (max-width: 600px) {
-    .container {
-        scale: 0.25;
-    }
-}
-
-@media (max-width: 400px) {
-    .container {
-        scale: 0.23;
-    }
-}
-
-.album-cover {
-    display: none;
-}
-
-.vinyl-record {
-    width: 700px;
-    height: 700px;
-    background-image: url('../images/vinyl.png');
-    background-size: cover;
-    background-position: center;
-    border-radius: 50%;
-    position: relative;
-    margin-left: -100px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-    -webkit-user-drag: none;
     overflow: hidden;
-    /* Ensure image stays circular */
+    /* For ripple and blur containment */
+    backdrop-filter: blur(20px);
+    /* Fallback */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Subtle border for definition */
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    /* Base shadow */
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.2s ease;
+    z-index: 1;
 }
 
-.text-title,
-.text-author {
-    display: none;
+/* Active/Pressed State (Bounce) */
+.liquid-glass:active {
+    transform: scale(0.95);
+    box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.2);
 }
 
-.vinyl-cover {
-    /* This was the center label, but now we want the whole vinyl to be the image? 
-       The user said "I want it to be circular, the image to be circular... I was talking about the vinyl, not the cover."
-       But also "I want to remove that square thing".
-       If I put the image on .vinyl-record, it spins? 
-       The .vinyl-cover spins inside .vinyl-record currently?
-       Let's check HTML.
-       <div class="vinyl-record"> <div class="vinyl-cover">...</div> </div>
-       vinyl-cover has animation: rotate.
-       vinyl-record does NOT rotate.
-       So if I want the image to spin, I should put it on .vinyl-cover and make .vinyl-cover fill the .vinyl-record?
-       Or make .vinyl-record spin?
-       
-       Current CSS:
-       .vinyl-cover { width: 320px; height: 320px; ... animation: rotate ... }
-       
-       If I want the *whole* vinyl to be the image and spin:
-       1. Make .vinyl-cover size 100% of .vinyl-record?
-       2. Or apply image to .vinyl-record and make IT spin?
-       
-       Let's try making .vinyl-cover fill the parent and hold the image.
-    */
-    width: 100%;
-    height: 100%;
+/* Hover Reflection/Glow */
+.liquid-glass::after {
+    content: '';
+    position: absolute;
     top: 0;
-    left: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%);
+    transform: skewX(-25deg);
+    transition: left 0.5s;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.liquid-glass:hover::after {
+    left: 150%;
+    transition: left 0.7s ease-in-out;
+}
+
+/* --- SIZES --- */
+
+/* Small (Buttons, Toggles) */
+.liquid-glass-sm {
+    border-radius: 1000px;
+    /* Shape */
+    background:
+        /* Blur Layer equivalent (simulated via gradient overlay) */
+        linear-gradient(0deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.04)),
+        /* Fill Layer */
+        linear-gradient(0deg, #F7F7F7, #F7F7F7),
+        linear-gradient(0deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .5)),
+        #333;
+    background-blend-mode: hard-light, plus-darker, normal, color-dodge;
+    opacity: 0.9;
+    /* Adjusted for visibility */
+    backdrop-filter: blur(20px);
+}
+
+/* Medium (Cards, Panels) */
+.liquid-glass-md {
+    border-radius: 34px;
+    background:
+        linear-gradient(0deg, rgba(245, 245, 245, 0.6), rgba(245, 245, 245, 0.6)),
+        #262626;
+    background-blend-mode: normal, color-dodge;
+    backdrop-filter: blur(40px);
+    /* Blur Layer simulation */
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Large (Modals, Drawers) */
+.liquid-glass-lg {
+    border-radius: 34px;
+    /* Or larger if needed */
+    background:
+        linear-gradient(0deg, rgba(250, 250, 250, 0.7), rgba(250, 250, 250, 0.7)),
+        #262626;
+    background-blend-mode: normal, color-dodge;
+    backdrop-filter: blur(40px);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.08);
+}
+
+
+/* --- RIPPLE ANIMATION --- */
+.ripple {
+    position: absolute;
     border-radius: 50%;
-    background-size: cover;
-    background-position: center;
-    position: absolute;
-    animation: rotate 8s linear infinite;
-    -webkit-user-drag: none;
+    transform: scale(0);
+    animation: ripple-effect 0.6s linear;
+    background-color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    z-index: 0;
 }
 
-@keyframes rotate {
-    from {
-        transform: rotate(0deg);
-    }
-
+@keyframes ripple-effect {
     to {
-        transform: rotate(360deg);
+        transform: scale(4);
+        opacity: 0;
     }
 }
 
-.armholder {
-    width: 180px;
-    height: 300px;
-    position: absolute;
-    right: -85px;
-    top: 10px;
+/* --- COMPONENT STYLES --- */
 
-    z-index: -2;
-    border-radius: 100px;
-    border-width: 5px;
-    background-color: rgba(0, 0, 0, 0.25);
-    box-shadow: 5px 10px 10px rgba(0, 0, 0, 0.5);
-}
-
-.armholder-circle {
-    width: 170px;
-    height: 170px;
-    position: absolute;
-    right: -80px;
-    top: 15px;
-
-    z-index: -1;
-    border-radius: 100px;
-    border-width: 5px;
-    background-color: rgba(0, 0, 0, 0.25);
-    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.5);
-}
-
-.tonearm {
-    width: 100px;
-    height: 600px;
-    background-image: url('../images/tonearm.png');
-    /* Replace with tonearm image URL */
-    background-size: contain;
-    background-repeat: no-repeat;
-    position: absolute;
-    right: -50px;
-    top: 60px;
-    transform-origin: 50% 10%;
-    cursor: grab;
-    -webkit-user-drag: none;
-    user-select: none;
-    /* box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5); */
-    filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.8));
-    z-index: 100;
-    /* Ensure it's on top */
-    pointer-events: auto;
-}
-
-.tonearm:active {
-    cursor: grabbing;
-}
-
-/* Keyframes for swapping z-index */
-@keyframes swapZIndex {
-    0% {
-        z-index: 0;
-        /* Card 1 is on top */
-        transform: translateX(0);
-        transform: rotate(-5deg);
-    }
-
-    50% {
-        z-index: 1;
-        /* Card 2 comes to the front */
-        transform: translateX(-200px);
-        /* Slight lift effect */
-    }
-
-    100% {
-        z-index: 1;
-        /* Card 1 back on top */
-        transform: translateX(250px);
-        /* transform: rotate(-5deg); */
-    }
-}
-
-@keyframes reverseZIndex {
-    0% {
-        z-index: 1;
-        /* Card 1 is on top */
-        transform: translateX(250px);
-        /* transform: rotate(-5deg); */
-    }
-
-    50% {
-        z-index: 0;
-        /* Card 2 comes to the front */
-        transform: translateX(-200px);
-        /* Slight lift effect */
-    }
-
-    100% {
-        z-index: 0;
-        /* Card 1 back on top */
-        transform: translateX(0);
-        transform: rotate(-5deg);
-    }
-}
-
-.swap {
-    animation: swapZIndex 0.5s forwards;
-    /* Trigger the animation */
-}
-
-.reverse {
-    animation: reverseZIndex 0.5s forwards;
-    /* Play the animation in reverse */
-}
-
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+/* Menu Toggle */
+.menu-toggle {
+    width: 44px;
+    height: 44px;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
-    backdrop-filter: blur(5px);
-    pointer-events: none;
-    /* Позволяет кликать через оверлей */
-}
-
-.loading-spinner,
-.loading-text {
-    pointer-events: auto;
-    /* Возвращаем события этим элементам */
-}
-
-.loading-spinner {
-    width: 50px;
-    height: 50px;
-    border: 5px solid #f3f3f3;
-    border-top: 5px solid #3498db;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-.loading-text {
-    color: white;
-    margin-top: 20px;
-    font-size: 1.2em;
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-/* Стили для меню */
-.menu-container {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1001;
-    /* Увеличим z-index */
-}
-
-.menu-toggle {
-    background: none;
-    border: 1px solid white;
-    border-radius: 5px;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 7px;
-    padding-bottom: 7px;
+    border: none;
+    color: #333;
+    /* Dark text for contrast on light glass */
     cursor: pointer;
-    color: white;
-    transition: background-color 0.3s;
-    filter: drop-shadow(0px 0px 2px gray);
 }
 
-.menu-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
+/* Menu Items Container */
 .menu-items {
     position: absolute;
-    top: 100%;
+    top: 60px;
     left: 0;
-    top: 100%;
-    left: 0;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    border-radius: 16px;
     padding: 10px;
-    margin-top: 10px;
     display: none;
     flex-direction: column;
     gap: 10px;
-    min-width: 200px;
+    min-width: 220px;
 }
 
 .menu-items.active {
     display: flex;
+    animation: slideDown 0.3s ease-out forwards;
 }
 
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Menu Item */
 .menu-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
-    color: white;
-    background: none;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #333;
     border: none;
     cursor: pointer;
-    transition: background-color 0.3s;
-    border-radius: 5px;
-    font-size: large;
+    text-decoration: none;
+    font-weight: 500;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background 0.2s;
 }
 
 .menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.3);
 }
 
-.menu-item svg {
-    width: 20px;
-    height: 20px;
-}
-
-/* Стили для модальных окон */
+/* Modals */
 .modal {
     display: none;
     position: fixed;
@@ -411,42 +196,65 @@ input[type="file"] {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.4);
+    /* Dim background */
     backdrop-filter: blur(5px);
     z-index: 2000;
     justify-content: center;
     align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    opacity: 1;
 }
 
 .modal-content {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    border-radius: 16px;
-    padding: 20px;
+    padding: 30px;
     width: 90%;
     max-width: 500px;
-    color: white;
+    color: #333;
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal.show .modal-content {
+    transform: scale(1);
 }
 
 .modal h2 {
-    margin: 0 0 20px 0;
-    text-align: center;
-}
-
-.modal input,
-.modal textarea {
-    width: 95%;
-    padding: 10px;
+    margin-top: 0;
     margin-bottom: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 5px;
-    color: white;
+    text-align: center;
+    font-weight: 600;
 }
 
+/* Inputs in Modals */
+.modal input[type="text"],
+.modal textarea,
+.modal select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    color: #333;
+    font-size: 1em;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.modal input:focus,
+.modal textarea:focus {
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
+
+/* Modal Buttons */
 .modal-buttons {
     display: flex;
     justify-content: flex-end;
@@ -454,281 +262,238 @@ input[type="file"] {
 }
 
 .modal-btn {
-    padding: 8px 16px;
+    padding: 10px 20px;
     border: none;
-    border-radius: 5px;
     cursor: pointer;
-    background: #3498db;
-    color: white;
-    transition: background-color 0.3s;
-}
-
-.modal-btn:hover {
-    background: #2980b9;
-}
-
-/* Стили для уведомлений */
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 3000;
-    max-width: 350px;
-    transform: translateX(120%);
-    transition: transform 0.3s ease-in-out;
-    display: none;
-}
-
-.notification.show {
-    display: flex;
-    transform: translateX(0);
-}
-
-.notification-content {
-    background: rgba(30, 30, 30, 0.9);
-    color: white;
-    padding: 15px 20px;
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.notification.error .notification-content {
-    background: rgba(220, 53, 69, 0.9);
-}
-
-.notification.success .notification-content {
-    background: rgba(40, 167, 69, 0.9);
-}
-
-.notification-message {
-    flex-grow: 1;
-}
-
-.notification-close {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0;
-    opacity: 0.7;
-}
-
-.notification-close:hover {
-    opacity: 1;
-}
-
-.volume-container {
-    position: absolute;
-    bottom: 130px;
-    right: -225px;
-    z-index: 1000;
-    /* display: flex;
-    align-items: center; */
-    gap: 10px;
-    rotate: -90deg;
-    z-index: -1;
-}
-
-#volumeSlider {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 300px;
-    height: 8px;
-    background: #000000;
-    /* border-radius: 0px; */
-    outline: none;
-    box-shadow: 0px 0px 5px #232323;
-}
-
-#volumeSlider::-webkit-slider-thumb {
-    appearance: none;
-    -webkit-appearance: none;
-    appearance: none;
-    width: 30px;
-    height: 60px;
-    background: #343232;
-    border-radius: 5px;
-    cursor: pointer;
-    box-shadow: -2px 0px 6px black;
-}
-
-#volumeSlider::-moz-range-thumb {
-    appearance: none;
-    -webkit-appearance: none;
-    appearance: none;
-    width: 30px;
-    height: 60px;
-    background: #343232;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: -2px 0px 6px black;
-}
-
-.volume-indicator {
-    height: 30px;
-    display: flex;
-}
-
-.volume-indicator>* {
-    z-index: -100;
-}
-
-.desc-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1001;
-    /* Увеличим z-index */
-}
-
-.desc-toggle {
-    background: none;
-    border: 1px solid white;
-    border-radius: 5px;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 7px;
-    padding-bottom: 7px;
-    cursor: pointer;
-    color: white;
-    transition: background-color 0.3s;
-    filter: drop-shadow(0px 0px 2px gray);
-}
-
-.desc-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-.desc-items {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    border-radius: 5px;
-    padding: 10px;
-    margin-top: 10px;
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 300px;
-}
-
-.desc-items.active {
-    display: flex;
-}
-
-.desc-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    color: white;
-    background: none;
-    border: none;
-    transition: background-color 0.3s;
-    border-radius: 5px;
-    font-size: large;
-}
-
-.clock-container {
-    position: absolute;
-    bottom: 0px;
-    left: 20px;
-    z-index: 1000;
-    /* display: flex;
-    align-items: center; */
-}
-
-#clock {
-    color: white;
-    font-size: 7em;
-    font-family: sans-serif;
-    filter: drop-shadow(0px 0px 5px gray);
+    color: #333;
+    font-weight: 600;
 }
 
 /* Controls Container */
 .controls-container {
     position: absolute;
-    bottom: 20px;
-    /* Adjusted to be visible */
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 15px;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 10px 20px;
-    border-radius: 30px;
-    backdrop-filter: blur(10px);
-    color: white;
-    width: 400px;
-    z-index: 100;
-}
-
-.control-btn {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    transition: background 0.2s;
-    display: flex;
-    align-items: center;
+    gap: 20px;
+    padding: 15px 30px;
+    color: #333;
+    width: auto;
+    min-width: 400px;
     justify-content: center;
 }
 
-.control-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+.control-btn {
+    width: 50px;
+    height: 50px;
+    border: none;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
 }
 
+.control-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: currentColor;
+}
+
+/* Progress Bar */
 #progressBar {
     flex-grow: 1;
-    height: 4px;
+    height: 6px;
     appearance: none;
     -webkit-appearance: none;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
 }
 
 #progressBar::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    background: white;
-    border-radius: 50%;
-    cursor: pointer;
+    width: 0;
+    /* Hide thumb, use progress fill */
+    height: 0;
+    box-shadow: -100vw 0 0 100vw rgba(51, 51, 51, 0.8);
+    /* Progress fill hack */
 }
 
+/* Time Display */
 #currentTime,
 #duration {
-    font-size: 0.8em;
-    font-family: monospace;
-    min-width: 40px;
+    font-family: 'Inter', monospace;
+    font-size: 0.9em;
+    font-weight: 600;
+    min-width: 45px;
     text-align: center;
 }
 
-/* Settings Modal Styles */
+/* Volume Slider (Vertical) */
+.volume-container {
+    position: absolute;
+    bottom: 150px;
+    right: -210px;
+    /* Adjusted */
+    transform: rotate(-90deg);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    z-index: 100;
+}
+
+#volumeSlider {
+    width: 200px;
+    height: 6px;
+    appearance: none;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    outline: none;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #333;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Chapter Menu */
+.chapter-menu {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    max-height: 70vh;
+    flex-direction: column;
+    z-index: 2000;
+    color: #333;
+}
+
+.chapter-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.2em;
+    font-weight: 700;
+}
+
+.chapter-list {
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chapter-item {
+    padding: 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #444;
+    transition: all 0.2s;
+}
+
+.chapter-item:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: translateX(5px);
+}
+
+.chapter-item.active {
+    background: rgba(255, 255, 255, 0.6);
+    font-weight: bold;
+    border-left: 4px solid #333;
+}
+
+.chapter-time {
+    font-size: 0.85em;
+    opacity: 0.7;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 4px 8px;
+    border-radius: 10px;
+}
+
+/* Description / Help Toggle */
+.desc-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    display: flex;
+    gap: 10px;
+}
+
+.desc-toggle,
+.lyrics-toggle {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: none;
+    color: #333;
+    cursor: pointer;
+}
+
+.desc-toggle.long-mode {
+    width: auto;
+    padding: 0 20px;
+    gap: 10px;
+}
+
+.desc-toggle.long-mode::after {
+    content: attr(data-chapter);
+    font-weight: 600;
+}
+
+/* Description Items (Dropdown) */
+.desc-items {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    padding: 15px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 250px;
+    color: #333;
+}
+
+.desc-items.active {
+    display: flex;
+    animation: slideDown 0.3s ease-out forwards;
+}
+
+/* Settings Toggles */
 .setting-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    font-size: 1.1em;
+    font-weight: 500;
 }
 
-/* Toggle Switch */
 .switch {
     position: relative;
     display: inline-block;
-    width: 60px;
-    height: 34px;
+    width: 50px;
+    height: 28px;
 }
 
 .switch input {
@@ -744,260 +509,149 @@ input[type="file"] {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
+    background-color: rgba(0, 0, 0, 0.2);
     transition: .4s;
+    border-radius: 34px;
 }
 
 .slider:before {
     position: absolute;
     content: "";
-    height: 26px;
-    width: 26px;
+    height: 20px;
+    width: 20px;
     left: 4px;
     bottom: 4px;
     background-color: white;
     transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 input:checked+.slider {
-    background-color: #2196F3;
-}
-
-input:focus+.slider {
-    box-shadow: 0 0 1px #2196F3;
+    background-color: #333;
+    /* Active color */
 }
 
 input:checked+.slider:before {
-    transform: translateX(26px);
+    transform: translateX(22px);
 }
 
-.slider.round {
-    border-radius: 34px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-
-/* Video Player Styles */
-#vinylTrack {
-    position: absolute;
-    top: 50%;
+/* Notification */
+.notification {
+    position: fixed;
+    top: 20px;
     left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 50;
-    /* Below tonearm (100) but above vinyl if needed */
-    display: none;
-    /* Hidden by default */
-    pointer-events: none;
-    /* Let clicks pass through if needed, or auto */
+    transform: translateX(-50%) translateY(-150%);
+    z-index: 3000;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.container.video-mode #vinylTrack {
-    display: block;
-    width: 700px;
-    /* Match vinyl size or album cover size */
-    height: 400px;
-    /* 16:9 aspect ratio roughly, or square? User said square. */
-    /* Let's try to mimic the album cover look */
-    width: 500px;
-    height: 500px;
-    border-radius: 10px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-    pointer-events: auto;
-    left: -250px;
-    /* Adjust position to be where the album cover was? */
-    /* The original album cover was: width: 720px; height: 720px; transform: rotate(-5deg); */
-    /* The vinyl record is: width: 700px; height: 700px; margin-left: -100px; */
-
-    /* Let's position it to the left of the vinyl, like the album cover was */
-    left: -300px;
-    top: 50%;
-    transform: translateY(-50%) rotate(-5deg);
-    background: black;
+.notification.show {
+    transform: translateX(-50%) translateY(0);
 }
 
-/* When video is shown, maybe move the vinyl to the right? */
-.container.video-mode .vinyl-record {
-    /* Keep it spinning */
-    margin-left: 100px;
-    /* Move it right */
-    transition: margin-left 0.5s;
+.notification-content {
+    padding: 15px 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #333;
+    font-weight: 500;
 }
 
-.container.video-mode #vinylTrack {
-    /* Ensure iframe fills the div */
-    border: none;
+/* Vinyl Record (Unchanged mostly, just positioning) */
+.container {
+    position: relative;
+    transform: scale(0.9);
+    /* Adjust as needed */
 }
 
-.container.video-mode #vinylTrack iframe {
+.vinyl-record {
+    width: 600px;
+    height: 600px;
+    background-image: url('../images/vinyl.png');
+    background-size: cover;
+    border-radius: 50%;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.vinyl-cover {
     width: 100%;
     height: 100%;
-    border-radius: 10px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    position: absolute;
+    animation: rotate 8s linear infinite;
+    animation-play-state: paused;
 }
 
-/* Video Player */
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.tonearm {
+    width: 100px;
+    height: 600px;
+    background-image: url('../images/tonearm.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    position: absolute;
+    right: -80px;
+    top: 0;
+    transform-origin: 50% 10%;
+    transform: rotate(0deg);
+    transition: transform 1s ease;
+    z-index: 10;
+    filter: drop-shadow(10px 10px 20px rgba(0, 0, 0, 0.5));
+}
+
+/* Video Mode */
+#vinylTrack,
 #localVideo {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    max-width: 80%;
-    max-height: 80%;
-    z-index: 5;
-    /* Below tonearm but above vinyl */
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.container.video-mode #localVideo {
-    display: block !important;
-}
-
-/* Lyrics Toggle */
-.lyrics-toggle {
-    background: none;
-    border: none;
-    color: var(--text-color);
-    cursor: pointer;
-    padding: 10px;
-    border-radius: 50%;
-    transition: background 0.3s;
-    margin-left: 10px;
-}
-
-.lyrics-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.desc-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Lyrics Modal */
-.lyrics-content {
-    max-height: 300px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    text-align: center;
-    margin: 20px 0;
-    font-family: 'Courier New', Courier, monospace;
-    line-height: 1.6;
-}
-
-/* Language Select */
-#languageSelect {
-    background: #333;
-    color: #fff;
-    border: 1px solid #555;
-    border-radius: 5px;
-    font-size: 14px;
-}
-
-/* Long Question Mark (Chapter Mode) */
-.desc-toggle.long-mode {
-    width: auto;
-    padding: 0 15px;
+    width: 500px;
+    height: 500px;
     border-radius: 20px;
-    aspect-ratio: auto;
-}
-
-.desc-toggle.long-mode::after {
-    content: " / " attr(data-chapter);
-    font-size: 14px;
-    margin-left: 5px;
-}
-
-/* Chapter Menu */
-.chapter-menu {
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    z-index: 20;
     display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 400px;
-    max-height: 80vh;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    border-radius: 16px;
-    z-index: 2000;
-    flex-direction: column;
-    overflow: hidden;
 }
 
-.chapter-header {
-    padding: 15px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.2em;
-    font-weight: bold;
-    color: white;
+.container.video-mode #vinylTrack,
+.container.video-mode #localVideo {
+    display: block;
 }
 
-.chapter-list {
-    overflow-y: auto;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
 }
 
-.chapter-item {
-    padding: 12px 15px;
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    color: rgba(255, 255, 255, 0.8);
-    transition: all 0.2s;
-    background: rgba(255, 255, 255, 0.05);
+::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-.chapter-item:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    transform: translateX(5px);
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
 }
 
-.chapter-time {
-    opacity: 0.6;
-    font-size: 0.9em;
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.4);
 }
 
-/* Holiday Banner */
-.holiday-banner {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(45deg, #ff0000, #00ff00);
-    padding: 10px 20px;
-    border-radius: 20px;
-    color: white;
-    font-weight: bold;
-    z-index: 1000;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    animation: slideDown 0.5s ease-out;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-@keyframes slideDown {
-    from {
-        top: -50px;
-        opacity: 0;
-    }
-
-    to {
-        top: 20px;
-        opacity: 1;
-    }
+/* Hide file input */
+input[type="file"] {
+    display: none;
 }

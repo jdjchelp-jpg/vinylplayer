@@ -73,6 +73,7 @@ export class VinylPlayer {
         this.updateLanguage(this.currentLang);
         this.checkHoliday();
         this.updateSettings();
+        this.setupRippleEffect(); // Add ripple effect
 
         // PWA Install Prompt
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -547,17 +548,7 @@ export class VinylPlayer {
             if (this.player) {
                 this.player.loadVideoById(id);
                 this.updateTrackInfo(id); // Pass ID for YouTube
-                this.showNotification(translations[this.currentLang].playingTrack, "success");
             }
-        }
-    }
-
-    play() {
-        if (this.isLocalFile) {
-            const media = this.isVideo ? this.localVideo : this.localAudio;
-            media.play();
-        } else if (this.player) {
-            this.player.playVideo();
         }
     }
 
@@ -860,30 +851,6 @@ export class VinylPlayer {
         }
     }
 
-    checkHoliday() {
-        if (!this.elements.showHolidayToggle || !this.elements.showHolidayToggle.checked) return;
-
-        const holiday = this.holidayManager.checkHoliday();
-        if (holiday) {
-            // Show Banner
-            let banner = document.querySelector('.holiday-banner');
-            if (!banner) {
-                banner = document.createElement('div');
-                banner.className = 'holiday-banner';
-                document.body.appendChild(banner);
-            }
-            banner.innerHTML = `${holiday.icon} ${translations[this.currentLang].holidayMode} (${holiday.name})`;
-
-            // Auto-load playlist if queue is empty
-            if (this.playlistManager.queue.length === 0 && !this.isPlaying) {
-                const playlistId = this.holidayManager.getHolidayPlaylist(holiday);
-                if (playlistId) {
-                    this.loadFromUrl(`https://www.youtube.com/playlist?list=${playlistId}`);
-                }
-            }
-        }
-    }
-
     toggleChapterMenu() {
         if (this.elements.chapterMenu.style.display === 'flex') {
             this.elements.chapterMenu.style.display = 'none';
@@ -893,177 +860,80 @@ export class VinylPlayer {
         }
     }
 
+    readChaptersFromM4b(file) {
+        const mp4boxfile = MP4Box.createFile();
+
+        mp4boxfile.onReady = (info) => {
+            if (info.chapters && info.chapters.length > 0) {
+                this.chapters = info.chapters.map((c, i) => ({
+                    index: i + 1,
+                    title: c.title || `Chapter ${i + 1}`,
+                    start: c.start_time / c.timescale
+                }));
+                this.renderChapters();
+                if (this.elements.showChaptersToggle) {
+                    this.elements.showChaptersToggle.disabled = false;
+                    this.elements.showChaptersToggle.checked = true;
+                    this.updateSettings();
+                }
+            } else {
+                this.chapters = [];
+            }
+        };
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const arrayBuffer = e.target.result;
+            arrayBuffer.fileStart = 0;
+            mp4boxfile.appendBuffer(arrayBuffer);
+            mp4boxfile.flush();
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
     renderChapters() {
         this.elements.chapterList.innerHTML = '';
 
-        // Use parsed chapters if available
-        if (this.chapters && this.chapters.length > 0) {
-            this.chapters.forEach((chapter, index) => {
-                const div = document.createElement('div');
-                div.className = 'chapter-item';
-                div.innerHTML = `
-                    <span>${chapter.title || (translations[this.currentLang].chapter + ' ' + (index + 1))}</span>
-                    <span class="chapter-time">${this.formatTime(chapter.startTime)}</span>
-                `;
-                div.addEventListener('click', () => {
-                    if (this.isLocalFile) {
-                        const media = this.isVideo ? this.localVideo : this.localAudio;
-                        media.currentTime = chapter.startTime;
-                    } else if (this.player) {
-                        this.player.seekTo(chapter.startTime, true);
-                    }
-                    this.elements.chapterMenu.style.display = 'none';
-                    this.elements.descToggle.setAttribute('data-chapter', chapter.title || `${translations[this.currentLang].chapter} ${index + 1}`);
-                });
-                this.elements.chapterList.appendChild(div);
-            });
-            return;
-        }
+        if (!this.chapters || this.chapters.length === 0) return;
 
-        // Mock Chapters for now (or simple time split)
-        const duration = this.isLocalFile ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration) : (this.player ? this.player.getDuration() : 0);
-
-        if (!duration) return;
-
-        // Create 5 minute chapters as fallback
-        const chapterCount = Math.ceil(duration / 300);
-
-        for (let i = 0; i < chapterCount; i++) {
-            const time = i * 300;
+        this.chapters.forEach(chapter => {
             const div = document.createElement('div');
-            div.className = 'chapter-item';
+            div.className = 'chapter-item liquid-glass liquid-glass-sm';
             div.innerHTML = `
-                <span>${translations[this.currentLang].chapter} ${i + 1}</span>
-                <span class="chapter-time">${this.formatTime(time)}</span>
+                <span>${chapter.title}</span>
+                <span class="chapter-time">${this.formatTime(chapter.start)}</span>
             `;
             div.addEventListener('click', () => {
                 if (this.isLocalFile) {
                     const media = this.isVideo ? this.localVideo : this.localAudio;
-                    media.currentTime = time;
-                } else if (this.player) {
-                    this.player.seekTo(time, true);
+                    media.currentTime = chapter.start;
                 }
                 this.elements.chapterMenu.style.display = 'none';
-                this.elements.descToggle.setAttribute('data-chapter', `${translations[this.currentLang].chapter} ${i + 1}`);
+                this.elements.descToggle.setAttribute('data-chapter', chapter.title);
             });
             this.elements.chapterList.appendChild(div);
-        }
+        });
     }
 
-    async readChaptersFromM4b(file) {
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const data = new DataView(arrayBuffer);
-            let offset = 0;
+    checkHoliday() {
+        if (!this.elements.showHolidayToggle || !this.elements.showHolidayToggle.checked) return;
 
-            while (offset < data.byteLength) {
-                if (offset + 8 > data.byteLength) break;
-                const size = data.getUint32(offset);
-                const type = this.getAtomType(data, offset + 4);
+        const holiday = this.holidayManager.checkHoliday();
+        if (holiday) {
+            let banner = document.querySelector('.holiday-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.className = 'holiday-banner';
+                document.body.appendChild(banner);
+            }
+            banner.innerHTML = `${holiday.icon} ${translations[this.currentLang].holidayMode} (${holiday.name})`;
 
-                if (type === 'moov') {
-                    this.parseMoov(data, offset + 8, size - 8);
-                    break;
+            if (this.playlistManager.queue.length === 0 && !this.isPlaying) {
+                const playlistId = this.holidayManager.getHolidayPlaylist(holiday);
+                if (playlistId) {
+                    this.loadFromUrl(`https://www.youtube.com/playlist?list=${playlistId}`);
                 }
-
-                offset += size;
-                if (size === 0) break; // 0 means rest of file
             }
-        } catch (e) {
-            console.error("Error parsing M4b chapters:", e);
-        }
-    }
-
-    getAtomType(data, offset) {
-        let type = '';
-        for (let i = 0; i < 4; i++) {
-            type += String.fromCharCode(data.getUint8(offset + i));
-        }
-        return type;
-    }
-
-    parseMoov(data, offset, size) {
-        let end = offset + size;
-        while (offset < end) {
-            if (offset + 8 > data.byteLength) break;
-            const atomSize = data.getUint32(offset);
-            const atomType = this.getAtomType(data, offset + 4);
-
-            if (atomType === 'udta') {
-                this.parseUdta(data, offset + 8, atomSize - 8);
-            }
-
-            offset += atomSize;
-        }
-    }
-
-    parseUdta(data, offset, size) {
-        let end = offset + size;
-        while (offset < end) {
-            if (offset + 8 > data.byteLength) break;
-            const atomSize = data.getUint32(offset);
-            const atomType = this.getAtomType(data, offset + 4);
-
-            if (atomType === 'chpl') {
-                this.parseChpl(data, offset + 8, atomSize - 8);
-            }
-
-            offset += atomSize;
-        }
-    }
-
-    parseChpl(data, offset, size) {
-        // Nero chpl atom
-        let current = offset + 4; // Skip version/flags
-        current += 4; // Skip reserved (usually 0)
-
-        const count = data.getUint32(current);
-        current += 4;
-
-        this.chapters = [];
-
-        for (let i = 0; i < count; i++) {
-            if (current + 8 > data.byteLength) break;
-
-            const start = data.getBigUint64(current);
-            const startTime = Number(start) / 10000000; // 100ns units to seconds
-            current += 8;
-
-            const titleLen = data.getUint8(current);
-            current += 1;
-
-            if (current + titleLen > data.byteLength) break;
-
-            const titleBytes = new Uint8Array(data.buffer, data.byteOffset + current, titleLen);
-            const title = new TextDecoder('utf-8').decode(titleBytes);
-
-            current += titleLen;
-
-            this.chapters.push({
-                title: title,
-                startTime: startTime
-            });
-        }
-
-        console.log("Parsed chapters:", this.chapters);
-        if (this.chapters.length > 0) {
-            // Update UI if menu is open
-            if (this.elements.chapterMenu.style.display === 'flex') {
-                this.renderChapters();
-            }
-        }
-    }
-
-
-    async installApp() {
-        if (!this.deferredPrompt) return;
-
-        this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        this.deferredPrompt = null;
-        if (this.elements.installBtn) {
-            this.elements.installBtn.style.display = 'none';
         }
     }
 }
