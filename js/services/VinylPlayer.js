@@ -636,6 +636,13 @@ export class VinylPlayer {
 
             // Extract metadata
             if (track.file) {
+                // Check for M4b chapters
+                if (track.file.name.toLowerCase().endsWith('.m4b')) {
+                    this.readChaptersFromM4b(track.file);
+                } else {
+                    this.chapters = []; // Reset if not m4b
+                }
+
                 jsmediatags.read(track.file, {
                     onSuccess: (tag) => {
                         const tags = tag.tags;
@@ -889,6 +896,30 @@ export class VinylPlayer {
     renderChapters() {
         this.elements.chapterList.innerHTML = '';
 
+        // Use parsed chapters if available
+        if (this.chapters && this.chapters.length > 0) {
+            this.chapters.forEach((chapter, index) => {
+                const div = document.createElement('div');
+                div.className = 'chapter-item';
+                div.innerHTML = `
+                    <span>${chapter.title || (translations[this.currentLang].chapter + ' ' + (index + 1))}</span>
+                    <span class="chapter-time">${this.formatTime(chapter.startTime)}</span>
+                `;
+                div.addEventListener('click', () => {
+                    if (this.isLocalFile) {
+                        const media = this.isVideo ? this.localVideo : this.localAudio;
+                        media.currentTime = chapter.startTime;
+                    } else if (this.player) {
+                        this.player.seekTo(chapter.startTime, true);
+                    }
+                    this.elements.chapterMenu.style.display = 'none';
+                    this.elements.descToggle.setAttribute('data-chapter', chapter.title || `${translations[this.currentLang].chapter} ${index + 1}`);
+                });
+                this.elements.chapterList.appendChild(div);
+            });
+            return;
+        }
+
         // Mock Chapters for now (or simple time split)
         const duration = this.isLocalFile ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration) : (this.player ? this.player.getDuration() : 0);
 
@@ -916,6 +947,110 @@ export class VinylPlayer {
                 this.elements.descToggle.setAttribute('data-chapter', `${translations[this.currentLang].chapter} ${i + 1}`);
             });
             this.elements.chapterList.appendChild(div);
+        }
+    }
+
+    async readChaptersFromM4b(file) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const data = new DataView(arrayBuffer);
+            let offset = 0;
+
+            while (offset < data.byteLength) {
+                if (offset + 8 > data.byteLength) break;
+                const size = data.getUint32(offset);
+                const type = this.getAtomType(data, offset + 4);
+
+                if (type === 'moov') {
+                    this.parseMoov(data, offset + 8, size - 8);
+                    break;
+                }
+
+                offset += size;
+                if (size === 0) break; // 0 means rest of file
+            }
+        } catch (e) {
+            console.error("Error parsing M4b chapters:", e);
+        }
+    }
+
+    getAtomType(data, offset) {
+        let type = '';
+        for (let i = 0; i < 4; i++) {
+            type += String.fromCharCode(data.getUint8(offset + i));
+        }
+        return type;
+    }
+
+    parseMoov(data, offset, size) {
+        let end = offset + size;
+        while (offset < end) {
+            if (offset + 8 > data.byteLength) break;
+            const atomSize = data.getUint32(offset);
+            const atomType = this.getAtomType(data, offset + 4);
+
+            if (atomType === 'udta') {
+                this.parseUdta(data, offset + 8, atomSize - 8);
+            }
+
+            offset += atomSize;
+        }
+    }
+
+    parseUdta(data, offset, size) {
+        let end = offset + size;
+        while (offset < end) {
+            if (offset + 8 > data.byteLength) break;
+            const atomSize = data.getUint32(offset);
+            const atomType = this.getAtomType(data, offset + 4);
+
+            if (atomType === 'chpl') {
+                this.parseChpl(data, offset + 8, atomSize - 8);
+            }
+
+            offset += atomSize;
+        }
+    }
+
+    parseChpl(data, offset, size) {
+        // Nero chpl atom
+        let current = offset + 4; // Skip version/flags
+        current += 4; // Skip reserved (usually 0)
+
+        const count = data.getUint32(current);
+        current += 4;
+
+        this.chapters = [];
+
+        for (let i = 0; i < count; i++) {
+            if (current + 8 > data.byteLength) break;
+
+            const start = data.getBigUint64(current);
+            const startTime = Number(start) / 10000000; // 100ns units to seconds
+            current += 8;
+
+            const titleLen = data.getUint8(current);
+            current += 1;
+
+            if (current + titleLen > data.byteLength) break;
+
+            const titleBytes = new Uint8Array(data.buffer, data.byteOffset + current, titleLen);
+            const title = new TextDecoder('utf-8').decode(titleBytes);
+
+            current += titleLen;
+
+            this.chapters.push({
+                title: title,
+                startTime: startTime
+            });
+        }
+
+        console.log("Parsed chapters:", this.chapters);
+        if (this.chapters.length > 0) {
+            // Update UI if menu is open
+            if (this.elements.chapterMenu.style.display === 'flex') {
+                this.renderChapters();
+            }
         }
     }
 
