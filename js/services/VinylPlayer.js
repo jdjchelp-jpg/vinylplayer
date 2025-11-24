@@ -516,7 +516,9 @@ export class VinylPlayer {
     }
 
     playTrack(id) {
+        console.log("playTrack called with ID:", id);
         const track = this.playlistManager.queue.find(t => t.id === id);
+        console.log("Track found:", track);
 
         if (track && track.isLocal) {
             this.isLocalFile = true;
@@ -538,7 +540,9 @@ export class VinylPlayer {
 
             // Extract Chapters
             this.chapters = [];
+            console.log("Checking for file object:", track.file);
             if (track.file) {
+                console.log("Calling extractChapters...");
                 this.extractChapters(track.file).then(chapters => {
                     this.chapters = chapters;
                     if (this.chapters.length > 0) {
@@ -546,6 +550,8 @@ export class VinylPlayer {
                         console.log(`Found ${this.chapters.length} chapters`);
                     }
                 });
+            } else {
+                console.warn("No file object found in track!");
             }
 
             this.showNotification(translations[this.currentLang].playingTrack, "success");
