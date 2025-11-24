@@ -911,33 +911,34 @@ class VinylPlayer {
 
     log(msg) {
         console.log(msg);
-        // Append to chapter list for user visibility
-        if (this.elements.chapterList) {
-            const logItem = document.createElement('div');
-            logItem.style.fontSize = '10px';
-            logItem.style.color = '#aaa';
-            logItem.style.padding = '2px 10px';
-            logItem.textContent = `[LOG] ${msg}`;
-            this.elements.chapterList.appendChild(logItem);
-        }
+        if (!this.logs) this.logs = [];
+        this.logs.push(msg);
     }
 
     async extractChapters(file) {
         this.log("Starting extraction...");
 
-        // Check for Cross-Origin Isolation (Required for FFmpeg MT)
+        // Check for Cross-Origin Isolation
         if (!window.crossOriginIsolated) {
-            this.log("⚠️ Page is not Cross-Origin Isolated. FFmpeg (Multi-threaded) will likely fail.");
+            this.log("⚠️ Page is not Cross-Origin Isolated. FFmpeg might fail or be slow.");
         }
 
         // --- Strategy: FFmpeg (Primary) ---
         try {
+            this.log("Initializing FFmpeg...");
             const { FFmpeg } = FFmpegWASM;
             const { fetchFile } = FFmpegUtil;
 
             if (!this.ffmpeg) {
                 this.ffmpeg = new FFmpeg();
-                this.ffmpeg.on("log", ({ message }) => this.log(`FFmpeg: ${message}`));
+                this.ffmpeg.on("log", ({ message }) => {
+                    // Filter out noisy logs, keep important ones
+                    if (message.includes("Chapter") || message.includes("Duration") || message.includes("Error")) {
+                        this.log(`FFmpeg: ${message}`);
+                    }
+                });
+
+                // Load FFmpeg from CDN
                 await this.ffmpeg.load({
                     coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
                 });
@@ -946,30 +947,233 @@ class VinylPlayer {
             const ffmpeg = this.ffmpeg;
             const fileName = "input.m4b";
 
+            this.log("Writing file to memory...");
             await ffmpeg.writeFile(fileName, await fetchFile(file));
+
+            this.log("Running FFmpeg (extracting metadata)...");
+            // Use -f ffmetadata to get chapters
             await ffmpeg.exec(["-i", fileName, "-f", "ffmetadata", "metadata.txt"]);
 
+            this.log("Reading metadata...");
             const data = await ffmpeg.readFile("metadata.txt");
             const metadata = new TextDecoder().decode(data);
 
-            this.log("FFmpeg Metadata extracted.");
-
+            // Parse ffmetadata format
             const chapters = [];
             const lines = metadata.split("\n");
             let currentChapter = null;
 
             for (const line of lines) {
-                if (line.trim() === "[CHAPTER]") {
+                const trimmed = line.trim();
+                if (trimmed === "[CHAPTER]") {
+                    if (currentChapter) chapters.push(currentChapter);
+                    ```javascript
+            }
+        } else {
+            content += "No tracks in queue.";
+        }
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'playlist.txt';
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    toggleVideoMode(enable) {
+        if (enable) {
+            this.elements.container.classList.add('video-mode');
+            // YouTube Video
+            if (this.player && !this.isLocalFile) {
+                if (this.elements.showYouTubeToggle && this.elements.showYouTubeToggle.checked) {
+                    this.player.setSize(500, 500);
+                } else {
+                    this.player.setSize(0, 0);
+                }
+            }
+            // Local Video
+            if (this.isLocalFile && this.isVideo) {
+                if (this.elements.showLocalVideoToggle && this.elements.showLocalVideoToggle.checked) {
+                    this.localVideo.style.display = 'block';
+                } else {
+                    this.localVideo.style.display = 'none';
+                }
+                // Ensure YouTube is hidden when playing local file
+                if (this.player) this.player.setSize(0, 0);
+            }
+        } else {
+            this.elements.container.classList.remove('video-mode');
+            if (this.player) {
+                this.player.setSize(0, 0);
+            }
+            if (this.isLocalFile && this.isVideo) {
+                this.localVideo.style.display = 'none';
+            }
+        }
+    }
+
+    showNotification(msg, type) {
+        this.elements.notificationMessage.textContent = msg;
+        this.elements.notification.className = `notification show ${ type } `;
+        setTimeout(() => {
+            this.elements.notification.classList.remove('show');
+        }, 3000);
+    }
+
+    updateLanguage(lang) {
+        this.currentLang = lang;
+        const t = translations[lang];
+
+        // Update UI elements with data-i18n attribute
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (t[key]) el.textContent = t[key];
+        });
+
+        // Update specific elements
+        if (this.elements.loadUrlBtn) this.elements.loadUrlBtn.querySelector('span').textContent = t.loadFromUrl;
+        if (this.elements.settingsBtn) this.elements.settingsBtn.querySelector('span').textContent = t.settings;
+        if (document.getElementById('feedbackBtn')) document.getElementById('feedbackBtn').querySelector('span').textContent = t.feedback;
+        if (document.getElementById('downloadBtn')) document.getElementById('downloadBtn').querySelector('span').textContent = t.downloadPlaylist;
+
+        // File input label
+        const fileLabel = document.querySelector('label[class="menu-item"] span');
+        if (fileLabel) fileLabel.textContent = t.loadFromFile;
+
+        // Placeholders
+        if (this.elements.urlInput) this.elements.urlInput.placeholder = t.enterUrl;
+        if (document.getElementById('feedbackText')) document.getElementById('feedbackText').placeholder = t.yourFeedback;
+    }
+    updateSettings() {
+        // Lyrics
+        if (this.elements.showLyricsToggle && !this.elements.showLyricsToggle.checked) {
+            this.elements.lyricsToggle.style.display = 'none';
+        } else {
+            // Only show if lyrics exist (handled in updateTrackInfo)
+            if (this.elements.lyricsContent.textContent !== translations[this.currentLang].noLyrics) {
+                this.elements.lyricsToggle.style.display = 'block';
+            }
+        }
+
+        // Chapters
+        if (this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
+            this.elements.descToggle.classList.add('long-mode');
+            this.elements.descToggle.setAttribute('data-chapter', translations[this.currentLang].chapter + " 1"); // Default
+        } else {
+            this.elements.descToggle.classList.remove('long-mode');
+            this.elements.descToggle.removeAttribute('data-chapter');
+        }
+
+        // Video
+        if (this.isPlaying) {
+            this.toggleVideoMode(true);
+        }
+    }
+
+    checkHoliday() {
+        if (!this.elements.showHolidayToggle || !this.elements.showHolidayToggle.checked) return;
+
+        const holiday = this.holidayManager.checkHoliday();
+        if (holiday) {
+            // Show Banner
+            let banner = document.querySelector('.holiday-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.className = 'holiday-banner';
+                document.body.appendChild(banner);
+            }
+            banner.innerHTML = `${ holiday.icon } ${ translations[this.currentLang].holidayMode } (${ holiday.name })`;
+
+            // Auto-load playlist if queue is empty
+            if (this.playlistManager.queue.length === 0 && !this.isPlaying) {
+                const playlistId = this.holidayManager.getHolidayPlaylist(holiday);
+                if (playlistId) {
+                    this.loadFromUrl(`https://www.youtube.com/playlist?list=${playlistId}`);
+                }
+            }
+        }
+    }
+
+    toggleChapterMenu() {
+        if (this.elements.chapterMenu.style.display === 'flex') {
+            this.elements.chapterMenu.style.display = 'none';
+        } else {
+            this.renderChapters();
+            this.elements.chapterMenu.style.display = 'flex';
+        }
+    }
+
+    log(msg) {
+        console.log(msg);
+        if (!this.logs) this.logs = [];
+        this.logs.push(msg);
+    }
+
+    async extractChapters(file) {
+        this.log("Starting extraction...");
+
+        // Check for Cross-Origin Isolation
+        if (!window.crossOriginIsolated) {
+            this.log("⚠️ Page is not Cross-Origin Isolated. FFmpeg might fail or be slow.");
+        }
+
+        // --- Strategy: FFmpeg (Primary) ---
+        try {
+            this.log("Initializing FFmpeg...");
+            const { FFmpeg } = FFmpegWASM;
+            const { fetchFile } = FFmpegUtil;
+
+            if (!this.ffmpeg) {
+                this.ffmpeg = new FFmpeg();
+                this.ffmpeg.on("log", ({ message }) => {
+                    // Filter out noisy logs, keep important ones
+                    if (message.includes("Chapter") || message.includes("Duration") || message.includes("Error")) {
+                        this.log(`FFmpeg: ${message}`);
+                    }
+                });
+
+                // Load FFmpeg from CDN
+                await this.ffmpeg.load({
+                    coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
+                });
+            }
+
+            const ffmpeg = this.ffmpeg;
+            const fileName = "input.m4b";
+
+            this.log("Writing file to memory...");
+            await ffmpeg.writeFile(fileName, await fetchFile(file));
+
+            this.log("Running FFmpeg (extracting metadata)...");
+            // Use -f ffmetadata to get chapters
+            await ffmpeg.exec(["-i", fileName, "-f", "ffmetadata", "metadata.txt"]);
+
+            this.log("Reading metadata...");
+            const data = await ffmpeg.readFile("metadata.txt");
+            const metadata = new TextDecoder().decode(data);
+
+            // Parse ffmetadata format
+            const chapters = [];
+            const lines = metadata.split("\n");
+            let currentChapter = null;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed === "[CHAPTER]") {
                     if (currentChapter) chapters.push(currentChapter);
                     currentChapter = { index: chapters.length + 1, title: `Chapter ${chapters.length + 1}`, startSeconds: 0 };
                 } else if (currentChapter) {
-                    const [key, value] = line.split("=");
+                    const [key, ...values] = trimmed.split("=");
+                    const value = values.join("="); // Handle values with =
+
                     if (key && value) {
                         if (key === "START") {
                             currentChapter.startSeconds = parseInt(value, 10);
                         } else if (key === "title" || key === "TIMEBASE") {
-                            if (key === "title") currentChapter.title = value.trim();
-                            if (key === "TIMEBASE") currentChapter.timebase = value.trim();
+                            if (key === "title") currentChapter.title = value;
+                            if (key === "TIMEBASE") currentChapter.timebase = value;
                         }
                     }
                 }
@@ -977,23 +1181,87 @@ class VinylPlayer {
             if (currentChapter) chapters.push(currentChapter);
 
             if (chapters.length > 0) {
+                this.log(`FFmpeg found ${chapters.length} chapters.`);
+
+                // Normalize timestamps
                 chapters.forEach(ch => {
                     if (ch.timebase) {
                         const [num, den] = ch.timebase.split("/");
                         ch.startSeconds = ch.startSeconds * (num / den);
                     } else {
+                        // Default fallback if no timebase (unlikely with ffmetadata)
                         ch.startSeconds = ch.startSeconds / 1000;
                     }
                 });
+
                 chapters.sort((a, b) => a.startSeconds - b.startSeconds);
 
-                await ffmpeg.deleteFile(fileName);
-                await ffmpeg.deleteFile("metadata.txt");
+                // Cleanup
+                try {
+                    await ffmpeg.deleteFile(fileName);
+                    await ffmpeg.deleteFile("metadata.txt");
+                } catch (cleanupErr) {
+                    console.warn("Cleanup failed:", cleanupErr);
+                }
+
                 return chapters;
+            } else {
+                this.log("FFmpeg found no chapters in metadata. Attempting stderr parsing (ffprobe/mp4chaps simulation)...");
+
+                // --- Fallback Strategy: Parse stderr (like ffprobe/mp4chaps) ---
+                let stderrLog = "";
+                const logHandler = ({ message }) => {
+                    stderrLog += message + "\n";
+                };
+                this.ffmpeg.on("log", logHandler);
+
+                await ffmpeg.exec(["-i", fileName]);
+
+                this.ffmpeg.off("log", logHandler); // Stop listening
+
+                // Parse: "Chapter #0:0: start 0.000000, end 300.000000"
+                const stderrChapters = [];
+                const lines = stderrLog.split('\n');
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.includes("Chapter #")) {
+                        const startMatch = /start (\d+\.?\d*)/.exec(line);
+                        if (startMatch) {
+                            const startSeconds = parseFloat(startMatch[1]);
+                            let title = `Chapter ${stderrChapters.length + 1}`;
+
+                            // Try to find title in next few lines
+                            for (let j = 1; j <= 5; j++) {
+                                if (lines[i + j] && lines[i + j].includes("title")) {
+                                    const titleMatch = /title\s*:\s*(.*)/.exec(lines[i + j]);
+                                    if (titleMatch) {
+                                        title = titleMatch[1].trim();
+                                        break;
+                                    }
+                                }
+                            }
+
+                            stderrChapters.push({
+                                index: stderrChapters.length + 1,
+                                title: title,
+                                startSeconds: startSeconds
+                            });
+                        }
+                    }
+                }
+
+                if (stderrChapters.length > 0) {
+                    this.log(`Found ${stderrChapters.length} chapters via stderr parsing (mp4chaps style).`);
+                    return stderrChapters;
+                }
+
+                this.log("FFmpeg found no chapters in stderr.");
             }
 
         } catch (e) {
             this.log(`FFmpeg Error: ${e.message}`);
+            console.error(e);
         }
 
         // --- Fallback: MP4Box ---
@@ -1082,6 +1350,11 @@ class VinylPlayer {
                 }
 
                 chapters.sort((a, b) => a.startSeconds - b.startSeconds);
+                if (chapters.length > 0) {
+                    this.log(`MP4Box found ${chapters.length} chapters.`);
+                } else {
+                    this.log("MP4Box found no chapters.");
+                }
                 resolve(chapters);
             };
 
@@ -1161,6 +1434,24 @@ class VinylPlayer {
             });
             this.elements.chapterList.appendChild(div);
         });
+
+        // Render Logs
+        if (this.logs && this.logs.length > 0) {
+            const logContainer = document.createElement('div');
+            logContainer.style.marginTop = '20px';
+            logContainer.style.borderTop = '1px solid #555';
+            logContainer.style.paddingTop = '10px';
+
+            this.logs.forEach(log => {
+                const logItem = document.createElement('div');
+                logItem.style.fontSize = '12px'; // Keep logs small but readable
+                logItem.style.color = '#aaa';
+                logItem.style.fontFamily = 'monospace';
+                logItem.textContent = `> ${log}`;
+                logContainer.appendChild(logItem);
+            });
+            this.elements.chapterList.appendChild(logContainer);
+        }
     }
 
     async installApp() {
@@ -1175,3 +1466,4 @@ class VinylPlayer {
         }
     }
 }
+```

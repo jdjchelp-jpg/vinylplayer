@@ -913,7 +913,7 @@ input:checked+.slider:before {
     z-index: 1001;
     display: none;
     flex-direction: column;
-    width: 600px;
+    width: 90vw;
     max-height: 90vh;
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -943,7 +943,7 @@ input:checked+.slider:before {
     transition: background 0.3s;
     display: flex;
     justify-content: space-between;
-    font-size: 1.2em;
+    font-size: 2em;
 }
 
 .chapter-item:hover {

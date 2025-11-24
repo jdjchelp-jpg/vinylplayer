@@ -13,7 +13,7 @@ const sendAnalytics = (data = '') => {
 };
 
 // Отправляем базовую аналитику при загрузке
-sendAnalytics();
+// sendAnalytics(); // Disabled for production deployment
 
 // Инициализируем плеер
 document.addEventListener("DOMContentLoaded", () => new VinylPlayer());
