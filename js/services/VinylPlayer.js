@@ -907,12 +907,11 @@ export class VinylPlayer {
             mp4boxfile.onReady = (info) => {
                 foundInfo = true;
                 let chapters = [];
-
                 console.log("MP4Box Info:", info);
 
-                // Strategy 1: MP4Box built-in chapters (Track References)
+                // --- Strategy A: Standard MP4Box Chapters (Apple 'chap' reference) ---
                 if (info.chapters && info.chapters.length > 0) {
-                    console.log("Found chapters via info.chapters");
+                    console.log("Strategy A: Found chapters via info.chapters (Apple/Standard)");
                     chapters = info.chapters.map((ch, i) => ({
                         index: i + 1,
                         title: ch.title || `Chapter ${i + 1}`,
@@ -920,16 +919,11 @@ export class VinylPlayer {
                     }));
                 }
 
-                // Strategy 2: Look for 'chpl' atom (Nero/Apple) in moov.udta
+                // --- Strategy B: Nero 'chpl' Atom (moov.udta.chpl) ---
                 if (chapters.length === 0) {
                     const chpl = this.findBox(mp4boxfile.moov, 'chpl');
                     if (chpl && chpl.entries) {
-                        console.log("Found chapters via 'chpl' atom");
-                        // chpl start_time is in 100-nanosecond units (10^-7) usually, OR movie timescale?
-                        // The spec says: "start time is an integer expressed in the movie timescale"
-                        // But Nero chapters sometimes use different scales.
-                        // Usually it matches info.timescale.
-
+                        console.log("Strategy B: Found chapters via 'chpl' atom (Nero)");
                         chapters = chpl.entries.map((entry, i) => ({
                             index: i + 1,
                             title: entry.chapter_name || `Chapter ${i + 1}`,
@@ -938,8 +932,16 @@ export class VinylPlayer {
                     }
                 }
 
-                // Strategy 3: Look for 'chap' atom? (Less common, usually a track ref)
+                // --- Strategy C: iTunes Metadata (ilst) ---
+                if (chapters.length === 0) {
+                    const ilst = this.findBox(mp4boxfile.moov, 'ilst');
+                    if (ilst) {
+                        console.log("Strategy C: Checking 'ilst' metadata", ilst);
+                    }
+                }
 
+                // Sort by start time
+                chapters.sort((a, b) => a.startSeconds - b.startSeconds);
                 resolve(chapters);
             };
 
@@ -988,6 +990,12 @@ export class VinylPlayer {
         if (box.boxes) {
             for (let i = 0; i < box.boxes.length; i++) {
                 const found = this.findBox(box.boxes[i], type);
+                if (found) return found;
+            }
+        }
+        if (box.container && box.container.boxes) {
+            for (let i = 0; i < box.container.boxes.length; i++) {
+                const found = this.findBox(box.container.boxes[i], type);
                 if (found) return found;
             }
         }
