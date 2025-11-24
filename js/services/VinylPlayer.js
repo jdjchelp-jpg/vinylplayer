@@ -899,15 +899,26 @@ export class VinylPlayer {
         }
     }
 
+    log(msg) {
+        console.log(msg);
+    }
+
     async extractChapters(file) {
+        this.log("Starting extraction...");
+
+        // Check for Cross-Origin Isolation (Required for FFmpeg MT)
+        if (!window.crossOriginIsolated) {
+            this.log("⚠️ Page is not Cross-Origin Isolated. FFmpeg (Multi-threaded) will likely fail.");
+        }
+
         // --- Strategy: FFmpeg (Primary) ---
-        console.log("Starting FFmpeg extraction...");
         try {
             const { FFmpeg } = FFmpegWASM;
             const { fetchFile } = FFmpegUtil;
 
             if (!this.ffmpeg) {
                 this.ffmpeg = new FFmpeg();
+                this.ffmpeg.on("log", ({ message }) => this.log(`FFmpeg: ${message}`));
                 await this.ffmpeg.load({
                     coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
                 });
@@ -916,23 +927,13 @@ export class VinylPlayer {
             const ffmpeg = this.ffmpeg;
             const fileName = "input.m4b";
 
-            // Write file to memory
             await ffmpeg.writeFile(fileName, await fetchFile(file));
-
-            // Run ffprobe to get chapters
-            let output = "";
-            const logCallback = ({ message }) => {
-                output += message + "\n";
-            };
-            ffmpeg.on("log", logCallback);
-
             await ffmpeg.exec(["-i", fileName, "-f", "ffmetadata", "metadata.txt"]);
 
-            // Read metadata file
             const data = await ffmpeg.readFile("metadata.txt");
             const metadata = new TextDecoder().decode(data);
 
-            console.log("FFmpeg Metadata:", metadata);
+            this.log("FFmpeg Metadata extracted.");
 
             const chapters = [];
             const lines = metadata.split("\n");
@@ -962,26 +963,22 @@ export class VinylPlayer {
                         const [num, den] = ch.timebase.split("/");
                         ch.startSeconds = ch.startSeconds * (num / den);
                     } else {
-                        // Fallback if needed, but usually timebase is present
-                        ch.startSeconds = ch.startSeconds / 1000; // Default guess if no timebase?
+                        ch.startSeconds = ch.startSeconds / 1000;
                     }
                 });
-
                 chapters.sort((a, b) => a.startSeconds - b.startSeconds);
 
-                ffmpeg.off("log", logCallback);
                 await ffmpeg.deleteFile(fileName);
                 await ffmpeg.deleteFile("metadata.txt");
-
                 return chapters;
             }
 
         } catch (e) {
-            console.error("FFmpeg Error:", e);
+            this.log(`FFmpeg Error: ${e.message}`);
         }
 
         // --- Fallback: MP4Box ---
-        console.log("FFmpeg failed or found no chapters, falling back to MP4Box...");
+        this.log("Falling back to MP4Box...");
         return this.extractChaptersMP4Box(file);
     }
 
@@ -993,9 +990,11 @@ export class VinylPlayer {
             mp4boxfile.onReady = (info) => {
                 foundInfo = true;
                 let chapters = [];
-                console.log("MP4Box Info:", info);
+                this.log(`MP4Box Info found. Tracks: ${info.tracks.length}`);
 
+                // Strategy A: Standard
                 if (info.chapters && info.chapters.length > 0) {
+                    this.log("Found chapters via info.chapters");
                     chapters = info.chapters.map((ch, i) => ({
                         index: i + 1,
                         title: ch.title || `Chapter ${i + 1}`,
@@ -1003,14 +1002,43 @@ export class VinylPlayer {
                     }));
                 }
 
+                // Strategy B: Nero 'chpl'
                 if (chapters.length === 0) {
                     const chpl = this.findBox(mp4boxfile.moov, 'chpl');
-                    if (chpl && chpl.entries) {
-                        chapters = chpl.entries.map((entry, i) => ({
-                            index: i + 1,
-                            title: entry.chapter_name || `Chapter ${i + 1}`,
-                            startSeconds: entry.start_time / info.timescale
-                        }));
+                    if (chpl) {
+                        this.log("Found 'chpl' atom.");
+                        if (chpl.entries) {
+                            this.log("Found parsed entries in 'chpl'.");
+                            chapters = chpl.entries.map((entry, i) => ({
+                                index: i + 1,
+                                title: entry.chapter_name || `Chapter ${i + 1}`,
+                                startSeconds: entry.start_time / info.timescale
+                            }));
+                        } else if (chpl.data) {
+                            // Manual Parse of chpl data
+                            this.log("Parsing 'chpl' raw data...");
+                            try {
+                                const stream = new MP4Box.DataStream(chpl.data.buffer, 0, MP4Box.DataStream.BIG_ENDIAN);
+                                // Skip Version (1) + Flags (3) + Reserved (4) = 8 bytes
+                                stream.seek(8);
+                                const count = stream.readUint8();
+                                this.log(`Found ${count} chapters in raw chpl.`);
+
+                                for (let i = 0; i < count; i++) {
+                                    const start = stream.readUint64(); // 8 bytes
+                                    const len = stream.readUint8();
+                                    const title = stream.readString(len);
+
+                                    chapters.push({
+                                        index: i + 1,
+                                        title: title,
+                                        startSeconds: start / 10000000 // Nero uses 100ns units
+                                    });
+                                }
+                            } catch (err) {
+                                this.log(`Error parsing chpl raw: ${err}`);
+                            }
+                        }
                     }
                 }
 
@@ -1019,7 +1047,7 @@ export class VinylPlayer {
             };
 
             mp4boxfile.onError = (e) => {
-                console.warn("MP4Box Error:", e);
+                this.log(`MP4Box Error: ${e}`);
                 resolve([]);
             };
 
@@ -1028,30 +1056,23 @@ export class VinylPlayer {
 
             const readChunk = () => {
                 if (foundInfo || offset >= file.size) return;
-
                 const reader = new FileReader();
                 const blob = file.slice(offset, offset + chunkSize);
-
                 reader.onload = (e) => {
                     if (foundInfo) return;
-
                     const buffer = e.target.result;
                     buffer.fileStart = offset;
-
                     try {
                         mp4boxfile.appendBuffer(buffer);
                     } catch (err) {
-                        console.error("MP4Box Append Error:", err);
                         resolve([]);
                         return;
                     }
-
                     offset += chunkSize;
                     readChunk();
                 };
                 reader.readAsArrayBuffer(blob);
             };
-
             readChunk();
         });
     }
