@@ -899,7 +899,93 @@ export class VinylPlayer {
         }
     }
 
-    extractChapters(file) {
+    async extractChapters(file) {
+        // --- Strategy: FFmpeg (Primary) ---
+        console.log("Starting FFmpeg extraction...");
+        try {
+            const { FFmpeg } = FFmpegWASM;
+            const { fetchFile } = FFmpegUtil;
+
+            if (!this.ffmpeg) {
+                this.ffmpeg = new FFmpeg();
+                await this.ffmpeg.load({
+                    coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
+                });
+            }
+
+            const ffmpeg = this.ffmpeg;
+            const fileName = "input.m4b";
+
+            // Write file to memory
+            await ffmpeg.writeFile(fileName, await fetchFile(file));
+
+            // Run ffprobe to get chapters
+            let output = "";
+            const logCallback = ({ message }) => {
+                output += message + "\n";
+            };
+            ffmpeg.on("log", logCallback);
+
+            await ffmpeg.exec(["-i", fileName, "-f", "ffmetadata", "metadata.txt"]);
+
+            // Read metadata file
+            const data = await ffmpeg.readFile("metadata.txt");
+            const metadata = new TextDecoder().decode(data);
+
+            console.log("FFmpeg Metadata:", metadata);
+
+            const chapters = [];
+            const lines = metadata.split("\n");
+            let currentChapter = null;
+
+            for (const line of lines) {
+                if (line.trim() === "[CHAPTER]") {
+                    if (currentChapter) chapters.push(currentChapter);
+                    currentChapter = { index: chapters.length + 1, title: `Chapter ${chapters.length + 1}`, startSeconds: 0 };
+                } else if (currentChapter) {
+                    const [key, value] = line.split("=");
+                    if (key && value) {
+                        if (key === "START") {
+                            currentChapter.startSeconds = parseInt(value, 10);
+                        } else if (key === "title" || key === "TIMEBASE") {
+                            if (key === "title") currentChapter.title = value.trim();
+                            if (key === "TIMEBASE") currentChapter.timebase = value.trim();
+                        }
+                    }
+                }
+            }
+            if (currentChapter) chapters.push(currentChapter);
+
+            if (chapters.length > 0) {
+                chapters.forEach(ch => {
+                    if (ch.timebase) {
+                        const [num, den] = ch.timebase.split("/");
+                        ch.startSeconds = ch.startSeconds * (num / den);
+                    } else {
+                        // Fallback if needed, but usually timebase is present
+                        ch.startSeconds = ch.startSeconds / 1000; // Default guess if no timebase?
+                    }
+                });
+
+                chapters.sort((a, b) => a.startSeconds - b.startSeconds);
+
+                ffmpeg.off("log", logCallback);
+                await ffmpeg.deleteFile(fileName);
+                await ffmpeg.deleteFile("metadata.txt");
+
+                return chapters;
+            }
+
+        } catch (e) {
+            console.error("FFmpeg Error:", e);
+        }
+
+        // --- Fallback: MP4Box ---
+        console.log("FFmpeg failed or found no chapters, falling back to MP4Box...");
+        return this.extractChaptersMP4Box(file);
+    }
+
+    extractChaptersMP4Box(file) {
         return new Promise((resolve) => {
             const mp4boxfile = MP4Box.createFile();
             let foundInfo = false;
@@ -909,9 +995,7 @@ export class VinylPlayer {
                 let chapters = [];
                 console.log("MP4Box Info:", info);
 
-                // --- Strategy A: Standard MP4Box Chapters (Apple 'chap' reference) ---
                 if (info.chapters && info.chapters.length > 0) {
-                    console.log("Strategy A: Found chapters via info.chapters (Apple/Standard)");
                     chapters = info.chapters.map((ch, i) => ({
                         index: i + 1,
                         title: ch.title || `Chapter ${i + 1}`,
@@ -919,11 +1003,9 @@ export class VinylPlayer {
                     }));
                 }
 
-                // --- Strategy B: Nero 'chpl' Atom (moov.udta.chpl) ---
                 if (chapters.length === 0) {
                     const chpl = this.findBox(mp4boxfile.moov, 'chpl');
                     if (chpl && chpl.entries) {
-                        console.log("Strategy B: Found chapters via 'chpl' atom (Nero)");
                         chapters = chpl.entries.map((entry, i) => ({
                             index: i + 1,
                             title: entry.chapter_name || `Chapter ${i + 1}`,
@@ -932,15 +1014,6 @@ export class VinylPlayer {
                     }
                 }
 
-                // --- Strategy C: iTunes Metadata (ilst) ---
-                if (chapters.length === 0) {
-                    const ilst = this.findBox(mp4boxfile.moov, 'ilst');
-                    if (ilst) {
-                        console.log("Strategy C: Checking 'ilst' metadata", ilst);
-                    }
-                }
-
-                // Sort by start time
                 chapters.sort((a, b) => a.startSeconds - b.startSeconds);
                 resolve(chapters);
             };
@@ -950,8 +1023,7 @@ export class VinylPlayer {
                 resolve([]);
             };
 
-            // Read in chunks
-            const chunkSize = 1024 * 1024 * 2; // 2MB
+            const chunkSize = 1024 * 1024 * 2;
             let offset = 0;
 
             const readChunk = () => {
@@ -1030,7 +1102,6 @@ export class VinylPlayer {
             this.elements.chapterList.appendChild(div);
         });
     }
-
 
     async installApp() {
         if (!this.deferredPrompt) return;
