@@ -1,9 +1,8 @@
+// import { PlaylistManager } from './PlaylistManager.js';
+// import { translations } from './i18n.js';
+// import { HolidayManager } from './HolidayManager.js';
 
-import { PlaylistManager } from './PlaylistManager.js';
-import { translations } from './i18n.js';
-import { HolidayManager } from './HolidayManager.js';
-
-export class VinylPlayer {
+class VinylPlayer {
     constructor() {
         this.playlistManager = new PlaylistManager();
         this.player = null;
@@ -543,13 +542,18 @@ export class VinylPlayer {
             console.log("Checking for file object:", track.file);
             if (track.file) {
                 console.log("Calling extractChapters...");
-                this.extractChapters(track.file).then(chapters => {
-                    this.chapters = chapters;
-                    if (this.chapters.length > 0) {
-                        // Optional: Notify user
-                        console.log(`Found ${this.chapters.length} chapters`);
-                    }
-                });
+                this.extractChapters(track.file)
+                    .then(chapters => {
+                        this.chapters = chapters;
+                        if (this.chapters.length > 0) {
+                            console.log(`Found ${this.chapters.length} chapters`);
+                        } else {
+                            console.log("No chapters found after extraction.");
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error during chapter extraction:", err);
+                    });
             } else {
                 console.warn("No file object found in track!");
             }
@@ -907,6 +911,15 @@ export class VinylPlayer {
 
     log(msg) {
         console.log(msg);
+        // Append to chapter list for user visibility
+        if (this.elements.chapterList) {
+            const logItem = document.createElement('div');
+            logItem.style.fontSize = '10px';
+            logItem.style.color = '#aaa';
+            logItem.style.padding = '2px 10px';
+            logItem.textContent = `[LOG] ${msg}`;
+            this.elements.chapterList.appendChild(logItem);
+        }
     }
 
     async extractChapters(file) {
@@ -1024,25 +1037,45 @@ export class VinylPlayer {
                             // Manual Parse of chpl data
                             this.log("Parsing 'chpl' raw data...");
                             try {
-                                const stream = new MP4Box.DataStream(chpl.data.buffer, 0, MP4Box.DataStream.BIG_ENDIAN);
-                                // Skip Version (1) + Flags (3) + Reserved (4) = 8 bytes
-                                stream.seek(8);
-                                const count = stream.readUint8();
+                                const buffer = chpl.data.buffer;
+                                const view = new DataView(buffer);
+                                let offset = 0;
+
+                                // Skip Version (1 byte) + Flags (3 bytes) = 4 bytes
+                                // Skip Reserved (4 bytes)
+                                // Total skip: 8 bytes
+                                offset += 8;
+
+                                const count = view.getUint8(offset);
+                                offset += 1;
+
                                 this.log(`Found ${count} chapters in raw chpl.`);
 
                                 for (let i = 0; i < count; i++) {
-                                    const start = stream.readUint64(); // 8 bytes
-                                    const len = stream.readUint8();
-                                    const title = stream.readString(len);
+                                    // Start Time is 64-bit integer (8 bytes)
+                                    // 100ns units
+                                    const startNs = view.getBigUint64(offset, false); // Big Endian
+                                    offset += 8;
+
+                                    // Convert 100ns units to seconds
+                                    // 1s = 10,000,000 units
+                                    const startSeconds = Number(startNs) / 10000000;
+
+                                    const titleLen = view.getUint8(offset);
+                                    offset += 1;
+
+                                    const titleBytes = new Uint8Array(buffer, offset, titleLen);
+                                    const title = new TextDecoder().decode(titleBytes);
+                                    offset += titleLen;
 
                                     chapters.push({
                                         index: i + 1,
                                         title: title,
-                                        startSeconds: start / 10000000 // Nero uses 100ns units
+                                        startSeconds: startSeconds
                                     });
                                 }
                             } catch (err) {
-                                this.log(`Error parsing chpl raw: ${err}`);
+                                this.log(`Error parsing chpl raw: ${err.message}`);
                             }
                         }
                     }

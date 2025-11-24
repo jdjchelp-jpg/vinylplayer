@@ -1,4 +1,4 @@
-export class PlaylistManager {
+class PlaylistManager {
     constructor() {
         this.queue = [];
         this.currentIndex = -1;

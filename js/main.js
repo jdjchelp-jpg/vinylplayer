@@ -1,6 +1,7 @@
-import { VinylPlayer } from './services/VinylPlayer.js';
+// import { VinylPlayer } from './services/VinylPlayer.js';
 
-export const sendAnalytics = (data = '') => {
+const sendAnalytics = (data = '') => {
+    if (window.location.protocol === 'file:') return;
     fetch(`backend/analytics.php?data=${encodeURIComponent(data)}`)
         .then(response => response.text())
         .then(data => {
