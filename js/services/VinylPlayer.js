@@ -65,6 +65,7 @@ class VinylPlayer {
     }
 
     init() {
+        console.log("VinylPlayer.init() called");
         this.loadYouTubeAPI();
         this.setupEventListeners();
         this.setupToneArmDrag();
@@ -429,7 +430,13 @@ class VinylPlayer {
 
 
     setupToneArmDrag() {
+        console.log("setupToneArmDrag called");
         const arm = this.elements.toneArm;
+        console.log("ToneArm element:", arm);
+        if (!arm) {
+            console.error("ToneArm element not found!");
+            return;
+        }
 
         let isDragging = false;
         let startX, startY;
