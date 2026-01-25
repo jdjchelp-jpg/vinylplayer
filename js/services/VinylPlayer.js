@@ -4,6 +4,7 @@
 
 class VinylPlayer {
     constructor() {
+        console.log("VinylPlayer constructor started");
         this.playlistManager = new PlaylistManager();
         this.player = null;
         this.isPlaying = false;
@@ -63,7 +64,12 @@ class VinylPlayer {
         };
 
         this.deferredPrompt = null;
-        this.exportEngine = new ExportEngine(this);
+        try {
+            this.exportEngine = new ExportEngine(this);
+            console.log("ExportEngine initialized");
+        } catch (e) {
+            console.error("Failed to initialize ExportEngine:", e);
+        }
         this.init();
     }
 
@@ -400,6 +406,8 @@ class VinylPlayer {
                 if (this.isLocalFile) {
                     const media = this.isVideo ? this.localVideo : this.localAudio;
                     media.currentTime -= 5;
+                } else if (this.player && this.player.getCurrentTime) {
+                    this.player.seekTo(this.player.getCurrentTime() - 5, true);
                 }
             }
         });
@@ -513,7 +521,13 @@ class VinylPlayer {
     }
 
     loadFromUrl(url) {
+        console.log("loadFromUrl called with:", url);
+        if (!url) {
+            console.warn("Empty URL provided");
+            return;
+        }
         const { videoId, listId } = this.playlistManager.parseUrl(url);
+        console.log("Parsed URL:", { videoId, listId });
 
         if (listId) {
             if (this.player) {
