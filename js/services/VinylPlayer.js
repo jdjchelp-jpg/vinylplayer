@@ -4,6 +4,7 @@
 
 class VinylPlayer {
     constructor() {
+        console.log("VinylPlayer constructor started");
         this.playlistManager = new PlaylistManager();
         this.player = null;
         this.isPlaying = false;
@@ -119,6 +120,7 @@ class VinylPlayer {
     }
 
     onPlayerReady(event) {
+        console.log("Player Ready");
         this.isPlayerReady = true;
         this.setVolume(this.volume);
 
@@ -1270,8 +1272,8 @@ class VinylPlayer {
                 if (this.isLocalFile) {
                     const media = this.isVideo ? this.localVideo : this.localAudio;
                     media.currentTime = chapter.startSeconds;
-                } else if (this.player) {
-                    this.player.seekTo(chapter.startSeconds, true);
+                } else {
+                    this.callPlayer('seekTo', chapter.startSeconds, true);
                 }
                 this.elements.chapterMenu.style.display = 'none';
                 this.elements.descToggle.setAttribute('data-chapter', chapter.title);
@@ -1376,7 +1378,7 @@ class VinylPlayer {
         ctx.save();
         ctx.translate(centerX + (vinylSize * 0.4), centerY - (vinylSize * 0.4));
         // Rotate tonearm based on progress
-        const duration = this.isLocalFile ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration) : (this.player ? this.player.getDuration() : 0);
+        const duration = this.isLocalFile ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration) : (this.player ? (this.player.getDuration ? this.player.getDuration() : 0) : 0);
         const progress = duration > 0 ? time / duration : 0;
         const armAngle = 0.2 + (progress * 0.3); // Rough estimation
         ctx.rotate(armAngle);
