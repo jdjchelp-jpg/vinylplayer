@@ -609,11 +609,9 @@ class VinylPlayer {
             this.localVideo.pause();
             this.localVideo.style.display = 'none';
 
-            if (this.player) {
-                this.callPlayer('loadVideoById', id);
-                this.updateTrackInfo(id); // Pass ID for YouTube
-                this.showNotification(translations[this.currentLang].playingTrack, "success");
-            }
+            this.callPlayer('loadVideoById', id);
+            this.updateTrackInfo(id); // Pass ID for YouTube
+            this.showNotification(translations[this.currentLang].playingTrack, "success");
         }
     }
 
