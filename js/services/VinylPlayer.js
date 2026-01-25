@@ -4,7 +4,6 @@
 
 class VinylPlayer {
     constructor() {
-        console.log("VinylPlayer constructor started");
         this.playlistManager = new PlaylistManager();
         this.player = null;
         this.isPlaying = false;
@@ -16,6 +15,8 @@ class VinylPlayer {
         this.isLocalFile = false;
         this.holidayManager = new HolidayManager();
         this.chapters = []; // Store chapters
+        this.isPlayerReady = false;
+        this.playerQueue = [];
 
         this.elements = {
             vinylRecord: document.querySelector('.vinyl-record'),
@@ -118,8 +119,22 @@ class VinylPlayer {
     }
 
     onPlayerReady(event) {
-        console.log("Player Ready");
+        this.isPlayerReady = true;
         this.setVolume(this.volume);
+
+        // Process queued commands
+        while (this.playerQueue.length > 0) {
+            const { method, args } = this.playerQueue.shift();
+            this.callPlayer(method, ...args);
+        }
+    }
+
+    callPlayer(method, ...args) {
+        if (this.isPlayerReady && this.player && typeof this.player[method] === 'function') {
+            this.player[method](...args);
+        } else {
+            this.playerQueue.push({ method, args });
+        }
     }
 
     onPlayerStateChange(event) {
@@ -370,9 +385,9 @@ class VinylPlayer {
                     if (media.duration) {
                         media.currentTime = media.duration * (val / 100);
                     }
-                } else if (this.player && this.player.getDuration) {
-                    const duration = this.player.getDuration();
-                    this.player.seekTo(duration * (val / 100), true);
+                } else {
+                    const duration = this.player ? (this.player.getDuration ? this.player.getDuration() : 0) : 0;
+                    this.callPlayer('seekTo', duration * (val / 100), true);
                 }
             });
         }
@@ -521,20 +536,13 @@ class VinylPlayer {
     }
 
     loadFromUrl(url) {
-        console.log("loadFromUrl called with:", url);
-        if (!url) {
-            console.warn("Empty URL provided");
-            return;
-        }
+        if (!url) return;
         const { videoId, listId } = this.playlistManager.parseUrl(url);
-        console.log("Parsed URL:", { videoId, listId });
 
         if (listId) {
-            if (this.player) {
-                this.isLocalFile = false;
-                this.player.loadPlaylist({ list: listId });
-                this.showNotification(translations[this.currentLang].playlistLoaded, "success");
-            }
+            this.isLocalFile = false;
+            this.callPlayer('loadPlaylist', { list: listId });
+            this.showNotification(translations[this.currentLang].playlistLoaded, "success");
         } else if (videoId) {
             this.playlistManager.addToQueue({ id: videoId, title: 'Unknown Track', isVideo: true, isLocal: false });
 
@@ -602,7 +610,7 @@ class VinylPlayer {
             this.localVideo.style.display = 'none';
 
             if (this.player) {
-                this.player.loadVideoById(id);
+                this.callPlayer('loadVideoById', id);
                 this.updateTrackInfo(id); // Pass ID for YouTube
                 this.showNotification(translations[this.currentLang].playingTrack, "success");
             }
@@ -613,8 +621,8 @@ class VinylPlayer {
         if (this.isLocalFile) {
             const media = this.isVideo ? this.localVideo : this.localAudio;
             media.play();
-        } else if (this.player) {
-            this.player.playVideo();
+        } else {
+            this.callPlayer('playVideo');
         }
     }
 
@@ -622,8 +630,8 @@ class VinylPlayer {
         if (this.isLocalFile) {
             const media = this.isVideo ? this.localVideo : this.localAudio;
             media.pause();
-        } else if (this.player) {
-            this.player.pauseVideo();
+        } else {
+            this.callPlayer('pauseVideo');
         }
     }
 
@@ -637,7 +645,7 @@ class VinylPlayer {
         if (nextTrack) {
             this.playTrack(nextTrack.id);
         } else {
-            if (!this.isLocalFile && this.player) this.player.nextVideo();
+            this.callPlayer('nextVideo');
         }
     }
 
@@ -646,13 +654,13 @@ class VinylPlayer {
         if (prevTrack) {
             this.playTrack(prevTrack.id);
         } else {
-            if (!this.isLocalFile && this.player) this.player.previousVideo();
+            this.callPlayer('previousVideo');
         }
     }
 
     setVolume(vol) {
         this.volume = vol;
-        if (this.player) this.player.setVolume(vol);
+        this.callPlayer('setVolume', vol);
         this.localAudio.volume = vol / 100;
         this.localVideo.volume = vol / 100;
     }
