@@ -1,38 +1,90 @@
-class PlaylistManager {
+export class PlaylistManager {
     constructor() {
-        this.queue = [];
-        this.currentIndex = -1;
+        this.playlist = [];
+        this.currentTrackIndex = 0;
+        this.isChangingTrack = false;
+        // Legacy support mapping
+        this.queue = this.playlist;
     }
 
+    // Legacy method support if needed, or migration
+    get queue() {
+        return this.playlist;
+    }
+    set queue(val) {
+        this.playlist = val;
+    }
+
+    addTracks(tracks) {
+        this.playlist = tracks;
+        this.currentTrackIndex = 0;
+    }
+
+    // Support for single item add (migration helper)
     addToQueue(item) {
-        // item: { id: string, title: string, thumbnail: string, isVideo: boolean }
-        this.queue.push(item);
-        if (this.currentIndex === -1) {
-            this.currentIndex = 0;
-        }
+        this.playlist.push(item);
+        if (this.currentTrackIndex === -1) this.currentTrackIndex = 0;
     }
 
     getCurrentTrack() {
-        if (this.currentIndex >= 0 && this.currentIndex < this.queue.length) {
-            return this.queue[this.currentIndex];
+        const track = this.playlist[this.currentTrackIndex];
+        if (track && track.file && !track.source) {
+            // Create URL only when requested
+            track.source = URL.createObjectURL(track.file);
+            track.id = track.source; // Ensure ID is set for local files
+        }
+        return track;
+    }
+
+    hasNextTrack() {
+        return this.currentTrackIndex < this.playlist.length - 1;
+    }
+
+    nextTrack() {
+        if (this.hasNextTrack()) {
+            // Revoke URL of previous track
+            const currentTrack = this.playlist[this.currentTrackIndex];
+            if (currentTrack && currentTrack.source && currentTrack.file) {
+                URL.revokeObjectURL(currentTrack.source);
+                currentTrack.source = '';
+            }
+
+            this.currentTrackIndex++;
+            return this.getCurrentTrack();
         }
         return null;
     }
 
+    // Added for backward compatibility with VinylPlayer.js
     next() {
-        if (this.currentIndex < this.queue.length - 1) {
-            this.currentIndex++;
+        return this.nextTrack();
+    }
+
+    // Added for backward compatibility with VinylPlayer.js
+    previous() {
+        if (this.currentTrackIndex > 0) {
+            // Revoke current
+            const currentTrack = this.playlist[this.currentTrackIndex];
+            if (currentTrack && currentTrack.source && currentTrack.file) {
+                URL.revokeObjectURL(currentTrack.source);
+                currentTrack.source = '';
+            }
+
+            this.currentTrackIndex--;
             return this.getCurrentTrack();
         }
         return null;
     }
 
-    previous() {
-        if (this.currentIndex > 0) {
-            this.currentIndex--;
-            return this.getCurrentTrack();
-        }
-        return null;
+    clear() {
+        // Revoke all
+        this.playlist.forEach(track => {
+            if (track.source && track.file) {
+                URL.revokeObjectURL(track.source);
+            }
+        });
+        this.playlist = [];
+        this.currentTrackIndex = 0;
     }
 
     // Simple parser for YouTube URLs
