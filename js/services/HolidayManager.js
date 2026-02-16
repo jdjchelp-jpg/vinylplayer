@@ -1,4 +1,4 @@
-class HolidayManager {
+export class HolidayManager {
     constructor() {
         this.holidays = [
             {

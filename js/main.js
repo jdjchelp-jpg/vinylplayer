@@ -1,4 +1,4 @@
-// import { VinylPlayer } from './services/VinylPlayer.js';
+import { VinylPlayer } from './services/VinylPlayer.js';
 
 const sendAnalytics = (data = '') => {
     if (window.location.protocol === 'file:') return;

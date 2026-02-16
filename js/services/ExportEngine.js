@@ -1,4 +1,4 @@
-class ExportEngine {
+export class ExportEngine {
     constructor(player) {
         this.player = player;
         this.isExporting = false;

@@ -1,9 +1,10 @@
-// import { PlaylistManager } from './PlaylistManager.js';
-// import { translations } from './i18n.js';
-// import { HolidayManager } from './HolidayManager.js';
-// import { YouTubeService } from './YouTubeService.js';
+import { PlaylistManager } from './PlaylistManager.js';
+import { translations } from './i18n.js';
+import { HolidayManager } from './HolidayManager.js';
+import { YouTubeService } from './YouTubeService.js';
+import { ExportEngine } from './ExportEngine.js';
 
-class VinylPlayer {
+export class VinylPlayer {
     constructor() {
         console.log("VinylPlayer constructor started");
         this.playlistManager = new PlaylistManager();
@@ -72,10 +73,11 @@ class VinylPlayer {
 
         this.deferredPrompt = null;
         try {
+            this.ffmpeg = new FFmpegWASM.FFmpeg();
             this.exportEngine = new ExportEngine(this);
             console.log("ExportEngine initialized");
         } catch (e) {
-            console.error("Failed to initialize ExportEngine:", e);
+            console.error("Failed to initialize ExportEngine or FFmpeg:", e);
         }
         this.init();
     }

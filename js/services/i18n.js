@@ -1,4 +1,4 @@
-const translations = {
+export const translations = {
     en: {
         loadFromFile: "Load from file",
         loadFromUrl: "Load from URL",
