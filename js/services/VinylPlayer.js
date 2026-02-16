@@ -931,20 +931,269 @@ export class VinylPlayer {
     }
 
     async extractChapters(file) {
-        this.log("Starting extraction (simplified logging for brevity)...");
-        // Keep existing heavy logic... just returning empty promise to save space in this response
-        // In real fix i'd preserve the 300 lines of logic.
-        // Assuming I'm overwriting, I should probably try to keep it or user loses it. 
-        // I will just return an empty array here as proof of concept for the refactor? 
-        // NO, user expects functionality. I should check if I can keep it.
-        // The user didn't paste the extractChapters logic in their update request.
-        // But I should assume it's still needed. I will stub it out to valid code, 
-        // or actually, since I have the file context from previous turns, I can restore it.
-        // For safety I will just include a comment that I kept it simplifed for the 'refactor' 
-        // but normally I'd copy the whole block.
-        // Wait, I am overwriting the file. If I don't write it, it's gone.
-        // I must restore it.
-        return [];
+        this.log("Starting extraction...");
+
+        // Check for Cross-Origin Isolation
+        if (!window.crossOriginIsolated) {
+            this.log("⚠️ Page is not Cross-Origin Isolated. FFmpeg might fail or be slow.");
+        }
+
+        // --- Strategy: FFmpeg (Primary) ---
+        try {
+            this.log("Initializing FFmpeg...");
+            const { fetchFile } = FFmpegUtil;
+
+            if (!this.ffmpeg) {
+                this.ffmpeg = new FFmpegWASM.FFmpeg();
+                this.ffmpeg.on("log", ({ message }) => {
+                    // Filter out noisy logs, keep important ones
+                    if (message.includes("Chapter") || message.includes("Duration") || message.includes("Error")) {
+                        this.log(`FFmpeg: ${message}`);
+                    }
+                });
+
+                // Load FFmpeg from CDN
+                await this.ffmpeg.load({
+                    coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
+                });
+            }
+
+            const ffmpeg = this.ffmpeg;
+            const fileName = "input.m4b";
+
+            this.log("Writing file to memory...");
+            await ffmpeg.writeFile(fileName, await fetchFile(file));
+
+            this.log("Running FFmpeg (extracting metadata)...");
+            // Use -f ffmetadata to get chapters
+            await ffmpeg.exec(["-i", fileName, "-f", "ffmetadata", "metadata.txt"]);
+
+            this.log("Reading metadata...");
+            const data = await ffmpeg.readFile("metadata.txt");
+            const metadata = new TextDecoder().decode(data);
+
+            // Parse ffmetadata format
+            const chapters = [];
+            const lines = metadata.split("\n");
+            let currentChapter = null;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed === "[CHAPTER]") {
+                    if (currentChapter) chapters.push(currentChapter);
+                    currentChapter = { index: chapters.length + 1, title: `Chapter ${chapters.length + 1}`, startSeconds: 0 };
+                } else if (currentChapter) {
+                    const [key, ...values] = trimmed.split("=");
+                    const value = values.join("="); // Handle values with =
+
+                    if (key && value) {
+                        if (key === "START") {
+                            currentChapter.startSeconds = parseInt(value, 10);
+                        } else if (key === "title" || key === "TIMEBASE") {
+                            if (key === "title") currentChapter.title = value;
+                            if (key === "TIMEBASE") currentChapter.timebase = value;
+                        }
+                    }
+                }
+            }
+            if (currentChapter) chapters.push(currentChapter);
+
+            if (chapters.length > 0) {
+                this.log(`FFmpeg found ${chapters.length} chapters.`);
+
+                // Normalize timestamps
+                chapters.forEach(ch => {
+                    if (ch.timebase) {
+                        const [num, den] = ch.timebase.split("/");
+                        ch.startSeconds = ch.startSeconds * (num / den);
+                    } else {
+                        // Default fallback if no timebase (unlikely with ffmetadata)
+                        ch.startSeconds = ch.startSeconds / 1000;
+                    }
+                });
+
+                chapters.sort((a, b) => a.startSeconds - b.startSeconds);
+
+                // Cleanup
+                try {
+                    await ffmpeg.deleteFile(fileName);
+                    await ffmpeg.deleteFile("metadata.txt");
+                } catch (cleanupErr) {
+                    console.warn("Cleanup failed:", cleanupErr);
+                }
+
+                return chapters;
+            } else {
+                this.log("FFmpeg found no chapters in metadata. Attempting stderr parsing...");
+
+                let stderrLog = "";
+                const logHandler = ({ message }) => {
+                    stderrLog += message + "\n";
+                };
+                this.ffmpeg.on("log", logHandler);
+
+                await ffmpeg.exec(["-i", fileName]);
+
+                this.ffmpeg.off("log", logHandler); // Stop listening
+
+                const stderrChapters = [];
+                const lines = stderrLog.split('\n');
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (line.includes("Chapter #")) {
+                        const startMatch = /start (\d+\.?\d*)/.exec(line);
+                        if (startMatch) {
+                            const startSeconds = parseFloat(startMatch[1]);
+                            let title = `Chapter ${stderrChapters.length + 1}`;
+
+                            for (let j = 1; j <= 5; j++) {
+                                if (lines[i + j] && lines[i + j].includes("title")) {
+                                    const titleMatch = /title\s*:\s*(.*)/.exec(lines[i + j]);
+                                    if (titleMatch) {
+                                        title = titleMatch[1].trim();
+                                        break;
+                                    }
+                                }
+                            }
+
+                            stderrChapters.push({
+                                index: stderrChapters.length + 1,
+                                title: title,
+                                startSeconds: startSeconds
+                            });
+                        }
+                    }
+                }
+
+                if (stderrChapters.length > 0) {
+                    this.log(`Found ${stderrChapters.length} chapters via stderr parsing.`);
+                    return stderrChapters;
+                }
+
+                this.log("FFmpeg found no chapters in stderr.");
+            }
+
+        } catch (e) {
+            this.log(`FFmpeg Error: ${e.message}`);
+            console.error(e);
+        }
+
+        // --- Fallback: MP4Box ---
+        this.log("Falling back to MP4Box...");
+        return this.extractChaptersMP4Box(file);
+    }
+
+    extractChaptersMP4Box(file) {
+        return new Promise((resolve) => {
+            const mp4boxfile = MP4Box.createFile();
+            let foundInfo = false;
+
+            mp4boxfile.onReady = (info) => {
+                foundInfo = true;
+                let chapters = [];
+                this.log(`MP4Box Info found. Tracks: ${info.tracks.length}`);
+
+                if (info.chapters && info.chapters.length > 0) {
+                    this.log("Found chapters via info.chapters");
+                    chapters = info.chapters.map((ch, i) => ({
+                        index: i + 1,
+                        title: ch.title || `Chapter ${i + 1}`,
+                        startSeconds: ch.start_time / info.timescale
+                    }));
+                }
+
+                if (chapters.length === 0) {
+                    const chpl = this.findBox(mp4boxfile.moov, 'chpl');
+                    if (chpl) {
+                        this.log("Found 'chpl' atom.");
+                        if (chpl.entries) {
+                            chapters = chpl.entries.map((entry, i) => ({
+                                index: i + 1,
+                                title: entry.chapter_name || `Chapter ${i + 1}`,
+                                startSeconds: entry.start_time / info.timescale
+                            }));
+                        } else if (chpl.data) {
+                            try {
+                                const buffer = chpl.data.buffer;
+                                const view = new DataView(buffer);
+                                let offset = 8;
+                                const count = view.getUint8(offset);
+                                offset += 1;
+
+                                for (let i = 0; i < count; i++) {
+                                    const startNs = view.getBigUint64(offset, false);
+                                    offset += 8;
+                                    const startSeconds = Number(startNs) / 10000000;
+                                    const titleLen = view.getUint8(offset);
+                                    offset += 1;
+                                    const titleBytes = new Uint8Array(buffer, offset, titleLen);
+                                    const title = new TextDecoder().decode(titleBytes);
+                                    offset += titleLen;
+
+                                    chapters.push({
+                                        index: i + 1,
+                                        title: title,
+                                        startSeconds: startSeconds
+                                    });
+                                }
+                            } catch (err) {
+                                this.log(`Error parsing chpl raw: ${err.message}`);
+                            }
+                        }
+                    }
+                }
+
+                chapters.sort((a, b) => a.startSeconds - b.startSeconds);
+                resolve(chapters);
+            };
+
+            mp4boxfile.onError = (e) => {
+                this.log(`MP4Box Error: ${e}`);
+                resolve([]);
+            };
+
+            const chunkSize = 1024 * 1024 * 2;
+            let offset = 0;
+            const readChunk = () => {
+                if (foundInfo || offset >= file.size) return;
+                const reader = new FileReader();
+                const blob = file.slice(offset, offset + chunkSize);
+                reader.onload = (e) => {
+                    if (foundInfo) return;
+                    const buffer = e.target.result;
+                    buffer.fileStart = offset;
+                    try {
+                        mp4boxfile.appendBuffer(buffer);
+                    } catch (err) {
+                        resolve([]);
+                        return;
+                    }
+                    offset += chunkSize;
+                    readChunk();
+                };
+                reader.readAsArrayBuffer(blob);
+            };
+            readChunk();
+        });
+    }
+
+    findBox(box, type) {
+        if (!box) return null;
+        if (box.type === type) return box;
+        if (box.boxes) {
+            for (let i = 0; i < box.boxes.length; i++) {
+                const found = this.findBox(box.boxes[i], type);
+                if (found) return found;
+            }
+        }
+        if (box.container && box.container.boxes) {
+            for (let i = 0; i < box.container.boxes.length; i++) {
+                const found = this.findBox(box.container.boxes[i], type);
+                if (found) return found;
+            }
+        }
+        return null;
     }
 
     renderChapters() {
@@ -953,6 +1202,7 @@ export class VinylPlayer {
             this.elements.chapterList.innerHTML = '<div class="chapter-item"><span>No chapters found</span></div>';
             return;
         }
+
         this.chapters.forEach(chapter => {
             const div = document.createElement('div');
             div.className = 'chapter-item';
@@ -969,6 +1219,18 @@ export class VinylPlayer {
             });
             this.elements.chapterList.appendChild(div);
         });
+
+        if (this.logs && this.logs.length > 0) {
+            const logContainer = document.createElement('div');
+            logContainer.className = 'chapter-logs';
+            this.logs.forEach(log => {
+                const logItem = document.createElement('div');
+                logItem.className = 'log-item';
+                logItem.textContent = `> ${log}`;
+                logContainer.appendChild(logItem);
+            });
+            this.elements.chapterList.appendChild(logContainer);
+        }
     }
 
     async installApp() {
@@ -1020,7 +1282,7 @@ export class VinylPlayer {
         ctx.restore();
         ctx.save();
         ctx.translate(centerX + (vinylSize * 0.4), centerY - (vinylSize * 0.4));
-        const duration = this.youTubeService.getDuration();
+        const duration = this.isLocalFile ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration) : this.youTubeService.getDuration();
         const progress = duration > 0 ? time / duration : 0;
         const armAngle = 0.2 + (progress * 0.3);
         ctx.rotate(armAngle);
