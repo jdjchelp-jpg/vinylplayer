@@ -786,14 +786,10 @@ input:checked+.slider:before {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(0.1);
     z-index: 50;
-    /* Below tonearm (100) but above vinyl if needed */
-    /* display: none; */
-    opacity: 0;
-    /* Hidden by default */
+    opacity: 0.1;
     pointer-events: none;
-    /* Let clicks pass through if needed, or auto */
 }
 
 #vinylTrack iframe {

@@ -26,6 +26,7 @@ export class YouTubeService {
     }
 
     getVideoId(url) {
+        if (!url) return false;
         // Проверяем YouTube Shorts
         const shortsRegExp = /^.*youtube\.com\/shorts\/([^#&?]*).*/;
         const shortsMatch = url.match(shortsRegExp);
@@ -70,7 +71,6 @@ export class YouTubeService {
         for (const quality of qualities) {
             const url = `https://img.youtube.com/vi/${videoId}/${quality}`;
             if (await checkImage(url)) {
-                //console.log('Found valid cover:', url);
                 return url;
             }
         }
@@ -82,46 +82,42 @@ export class YouTubeService {
     async getVideoDetails(videoId) {
         try {
             const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-            if (!response.ok) throw new Error('Failed to fetch details');
+            if (!response.ok) return null;
             const data = await response.json();
             return {
                 title: data.title,
                 author: data.author_name
             };
         } catch (error) {
-            console.warn('Error fetching video details, using fallback:', error);
+            console.warn('Error fetching video details:', error);
             return null;
         }
     }
 
     getVideoData() {
-        if (!this.player) return null;
+        if (!this.player || !this.playerReady) return null;
+        try {
+            const playerData = this.player.getVideoData();
+            const playerInfo = (typeof this.player.getPlayerResponse === 'function') ? this.player.getPlayerResponse() : null;
 
-        // Получаем данные из плеера
-        const playerData = this.player.getVideoData();
-        // Получаем дополнительные данные из playerInfo (безопасно)
-        const playerInfo = (typeof this.player.getPlayerResponse === 'function') ? this.player.getPlayerResponse() : null;
-
-        return {
-            title: playerData.title,
-            // Пробуем получить имя канала из разных источников
-            author: playerInfo?.videoDetails?.author ||
-                playerInfo?.videoDetails?.channelName ||
-                playerData.author ||
-                'Unknown Artist'
-        };
+            return {
+                title: playerData?.title || 'YouTube Video',
+                author: playerInfo?.videoDetails?.author ||
+                    playerInfo?.videoDetails?.channelName ||
+                    playerData?.author ||
+                    'Unknown Artist'
+            };
+        } catch (e) {
+            return null;
+        }
     }
 
     async isVideoEmbeddable(videoId) {
         try {
             const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-            if (response.ok) {
-                return true;
-            }
-            // Если oembed вернул ошибку, это не всегда означает, что видео нельзя встроить
+            // Даже если oembed не доступен, мы пробуем загрузить видео (оно может быть встраиваемым)
             return true;
         } catch (error) {
-            console.warn('Video embedding check failed, defaulting to true:', error);
             return true;
         }
     }
@@ -134,51 +130,53 @@ export class YouTubeService {
                 return;
             }
 
-            // Проверяем, доступно ли видео для встраивания
-            const embeddable = await this.isVideoEmbeddable(videoId);
-            if (!embeddable) {
-                this.dom.showNotification('This video cannot be embedded or requires login.');
-                return;
+            // Очистка предыдущего плеера для предотвращения конфликтов origin
+            if (this.player && typeof this.player.destroy === 'function') {
+                try {
+                    console.log('Destroying existing YouTube player...');
+                    this.player.destroy();
+                } catch (e) {
+                    console.warn('Error destroying player:', e);
+                }
+                this.player = null;
+                this.playerReady = false;
+            }
+
+            // Убеждаемся, что целевой элемент существует
+            let targetEl = document.getElementById(elementId);
+            if (!targetEl) {
+                console.log('Recreating player element:', elementId);
+                targetEl = document.createElement('div');
+                targetEl.id = elementId;
+                const container = document.querySelector('.container') || document.body;
+                container.appendChild(targetEl);
             }
 
             try {
-                // Destroy existing player if any to prevent duplicate iframes or target mismatches
-                if (this.player && typeof this.player.destroy === 'function') {
-                    try { this.player.destroy(); } catch (e) { console.warn('Destroy error:', e); }
-                    this.player = null;
-                    this.playerReady = false;
-                }
+                const detailsPromise = this.getVideoDetails(videoId);
 
-                // Re-ensure the target element exists after destroy()
-                let targetEl = document.getElementById(elementId);
-                if (!targetEl) {
-                    const container = document.querySelector('.container') || document.body;
-                    const div = document.createElement('div');
-                    div.id = elementId;
-                    container.appendChild(div);
-                }
-
-                const details = await this.getVideoDetails(videoId);
-                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
+                console.log('Creating YouTube player for:', videoId);
                 this.player = new YT.Player(elementId, {
                     videoId: videoId,
-                    height: '1', // Изменено с 0 на 1 для предотвращения ошибок postMessage
+                    height: '1', // Размер '1' критичен для предотвращения ошибок postMessage на Vercel
                     width: '1',
                     playerVars: {
-                        enablejsapi: 1, // Включение JS API
-                        origin: window.location.origin, // Убедитесь, что это HTTPS-домен
+                        enablejsapi: 1,
+                        // origin: window.location.origin, // Пропуск origin может решить mismatch на Vercel
                         controls: 0,
                         modestbranding: 1,
-                        playsinline: 1
+                        playsinline: 1,
+                        autoplay: 1
                     },
                     events: {
-                        onReady: (event) => {
+                        onReady: async (event) => {
+                            console.log('YouTube onReady fired');
                             this.playerReady = true;
+                            const details = await detailsPromise;
                             const data = event.target.getVideoData();
                             const videoData = {
-                                title: details?.title || data.title || 'Unknown Title',
-                                author: details?.author || 'Unknown Artist'
+                                title: details?.title || data?.title || 'Unknown Title',
+                                author: details?.author || data?.author || 'Unknown Artist'
                             };
                             onReady(event, videoData);
                         },
@@ -235,7 +233,7 @@ export class YouTubeService {
     }
 
     destroy() {
-        if (this.player && this.playerReady) {
+        if (this.player && typeof this.player.destroy === 'function') {
             this.player.destroy();
         }
         this.player = null;
