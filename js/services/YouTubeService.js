@@ -139,7 +139,28 @@ export class YouTubeService {
             }
 
             try {
-                // Destroy existing player if any to prevent duplicates
+                // If player already exists and is ready, just load the new video
+                if (this.player && this.playerReady && typeof this.player.loadVideoById === 'function') {
+                    console.log('Reusing existing YouTube player for video:', videoId);
+                    this.player.loadVideoById({
+                        videoId: videoId,
+                        startSeconds: 0
+                    });
+
+                    // Manually trigger onReady-like behavior for metadata
+                    const details = await this.getVideoDetails(videoId).catch(() => null);
+                    const quickData = this.getVideoData() || {};
+                    const videoData = {
+                        title: details?.title || quickData.title || 'YouTube Video',
+                        author: details?.author || quickData.author || 'Unknown Artist'
+                    };
+
+                    // We call onReady callback with current event (null if needed or fake)
+                    onReady(null, videoData);
+                    return;
+                }
+
+                // If player exists but is NOT ready or we want to start fresh
                 if (this.player && typeof this.player.destroy === 'function') {
                     try {
                         this.player.destroy();
@@ -150,59 +171,53 @@ export class YouTubeService {
                     this.playerReady = false;
                 }
 
-                // Ensure the target element exists (destroy() might not restore it properly)
+                // Ensure the target element exists
                 let targetEl = document.getElementById(elementId);
                 if (!targetEl) {
                     console.log('Recreating player element:', elementId);
                     targetEl = document.createElement('div');
                     targetEl.id = elementId;
-                    const container = document.querySelector('.container');
-                    if (container) {
-                        container.appendChild(targetEl);
-                    } else {
-                        document.body.appendChild(targetEl);
-                    }
+                    const container = document.querySelector('.container') || document.body;
+                    container.appendChild(targetEl);
                 }
 
-                console.log('Creating YouTube player for video:', videoId);
+                console.log('Initializing new YouTube player for video:', videoId);
 
-                // Start metadata fetch in parallel (non-blocking)
+                // Start metadata fetch in parallel
                 const detailsPromise = this.getVideoDetails(videoId).catch(() => null);
 
                 this.player = new YT.Player(elementId, {
                     videoId: videoId,
-                    height: '0',
-                    width: '0',
+                    height: '1',
+                    width: '1',
                     playerVars: {
                         enablejsapi: 1,
                         autoplay: 1,
+                        origin: window.location.origin,
                         controls: 0,
                         modestbranding: 1,
                         playsinline: 1
                     },
                     events: {
                         onReady: (event) => {
-                            console.log('YouTube Player Ready');
+                            console.log('YouTube Player Ready event fired');
                             this.playerReady = true;
 
-                            // Call onReady immediately with whatever data we have
                             const quickData = this.getVideoData();
                             onReady(event, quickData);
 
-                            // Then update with real metadata in the background
                             detailsPromise.then(details => {
                                 if (details && this.playerReady) {
                                     const improvedData = {
                                         title: details.title || quickData.title,
                                         author: details.author || quickData.author
                                     };
-                                    console.log('Background metadata loaded:', improvedData);
                                     onReady(event, improvedData);
                                 }
                             });
                         },
                         onStateChange: (event) => {
-                            // If title is still 'YouTube Video', try to update it when playing
+                            // Update metadata if it was unknown
                             if (event.data === YT.PlayerState.PLAYING) {
                                 const data = this.getVideoData();
                                 if (data && data.title === 'YouTube Video') {
@@ -218,8 +233,8 @@ export class YouTubeService {
                     }
                 });
             } catch (error) {
-                console.error('Error creating YouTube player:', error);
-                this.dom.showNotification('Error creating YouTube player', 'error');
+                console.error('Error in YouTube creation flow:', error);
+                this.dom.showNotification('Error initializing YouTube player', 'error');
             }
         };
 
