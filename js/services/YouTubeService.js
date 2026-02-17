@@ -82,13 +82,14 @@ export class YouTubeService {
     async getVideoDetails(videoId) {
         try {
             const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+            if (!response.ok) throw new Error('Failed to fetch details');
             const data = await response.json();
             return {
                 title: data.title,
                 author: data.author_name
             };
         } catch (error) {
-            console.error('Error fetching video details:', error);
+            console.warn('Error fetching video details, using fallback:', error);
             return null;
         }
     }
@@ -98,11 +99,8 @@ export class YouTubeService {
 
         // Получаем данные из плеера
         const playerData = this.player.getVideoData();
-        // Получаем дополнительные данные из playerInfo
-        const playerInfo = this.player.getPlayerResponse();
-
-        //console.log('Player Data:', playerData);
-        //console.log('Player Info:', playerInfo);
+        // Получаем дополнительные данные из playerInfo (безопасно)
+        const playerInfo = (typeof this.player.getPlayerResponse === 'function') ? this.player.getPlayerResponse() : null;
 
         return {
             title: playerData.title,
@@ -120,10 +118,11 @@ export class YouTubeService {
             if (response.ok) {
                 return true;
             }
-            return false;
+            // Если oembed вернул ошибку, это не всегда означает, что видео нельзя встроить
+            return true;
         } catch (error) {
-            console.error('Video embedding check failed:', error);
-            return false;
+            console.warn('Video embedding check failed, defaulting to true:', error);
+            return true;
         }
     }
 
@@ -143,13 +142,29 @@ export class YouTubeService {
             }
 
             try {
+                // Destroy existing player if any to prevent duplicate iframes or target mismatches
+                if (this.player && typeof this.player.destroy === 'function') {
+                    try { this.player.destroy(); } catch (e) { console.warn('Destroy error:', e); }
+                    this.player = null;
+                    this.playerReady = false;
+                }
+
+                // Re-ensure the target element exists after destroy()
+                let targetEl = document.getElementById(elementId);
+                if (!targetEl) {
+                    const container = document.querySelector('.container') || document.body;
+                    const div = document.createElement('div');
+                    div.id = elementId;
+                    container.appendChild(div);
+                }
+
                 const details = await this.getVideoDetails(videoId);
                 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
                 this.player = new YT.Player(elementId, {
                     videoId: videoId,
-                    height: '0',
-                    width: '0',
+                    height: '1', // Изменено с 0 на 1 для предотвращения ошибок postMessage
+                    width: '1',
                     playerVars: {
                         enablejsapi: 1, // Включение JS API
                         origin: window.location.origin, // Убедитесь, что это HTTPS-домен
@@ -171,70 +186,17 @@ export class YouTubeService {
                         onError: (event) => {
                             console.error('YouTube Player Error:', event.data);
                             this.onPlayerError(event);
-                            if (event.data === 150 && isSafari) {
-                                console.warn('Retrying in Safari with minimal config...');
-                                // Optionally retry with minimal playerVars
-                            }
                         }
                     }
                 });
             } catch (error) {
                 console.error('Error creating YouTube player:', error);
                 this.dom.showNotification('Error creating YouTube player', 'error');
-                setTimeout(() => tryCreatePlayer(), 100);
             }
         };
 
         tryCreatePlayer();
     }
-
-    // createPlayer(elementId, videoId, onReady, onStateChange) {
-    //   const tryCreatePlayer = async () => {
-    //     if (!this.isReady) {
-    //       setTimeout(() => tryCreatePlayer(), 100);
-    //       return;
-    //     }
-
-    //     try {
-    //       const details = await this.getVideoDetails(videoId);
-
-    //       this.player = new YT.Player(elementId, {
-    //         videoId: videoId,
-    //         height: '0',
-    //         width: '0',
-    //         playerVars: {
-    //           controls: 0,
-    //           modestbranding: 1,
-    //           playsinline: 1
-    //         },
-    //         events: {
-    //           onReady: (event) => {
-    //             this.playerReady = true;
-    //             const data = event.target.getVideoData();
-    //             const videoData = {
-    //               title: details?.title || data.title || 'Unknown Title',
-    //               author: details?.author || 'Unknown Artist'
-    //             };
-    //             onReady(event, videoData);
-    //           },
-    //           onStateChange: onStateChange,
-    //           onError: (event) => {
-    //             console.error('Error creating YouTube player:', event);
-    //             //this.dom.showNotification('Youtube error: ' + event.data);
-    //             this.onPlayerError(event);
-    //             setTimeout(() => tryCreatePlayer(), 100);
-    //           }
-    //         }
-    //       });
-    //     } catch (error) {
-    //       console.error('Error creating YouTube player:', error);
-    //       this.dom.showNotification('Error creating YouTube player:', 'error');
-    //       setTimeout(() => tryCreatePlayer(), 100);
-    //     }
-    //   };
-
-    //   tryCreatePlayer();
-    // }
 
     onPlayerError(event) {
         const errorCodes = {
@@ -244,7 +206,6 @@ export class YouTubeService {
         };
         const errorCode = event.data;
         this.dom.showNotification(`Error ${errorCode}: ${errorCodes[errorCode] || 'An unknown error occurred.'}`);
-        //alert(`Error ${errorCode}: ${errorCodes[errorCode] || 'An unknown error occurred.'}`);
     }
 
     play() {
