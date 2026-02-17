@@ -13,7 +13,6 @@ export class YouTubeService {
             return;
         }
 
-        // Определяем callback для YouTube API
         window.onYouTubeIframeAPIReady = () => {
             console.log('YouTube API Ready');
             this.isReady = true;
@@ -27,27 +26,51 @@ export class YouTubeService {
 
     getVideoId(url) {
         if (!url) return false;
-        // Проверяем YouTube Shorts
-        const shortsRegExp = /^.*youtube\.com\/shorts\/([^#&?]*).*/;
-        const shortsMatch = url.match(shortsRegExp);
-        if (shortsMatch && shortsMatch[1].length === 11) {
-            return shortsMatch[1];
+
+        // Handle youtu.be short URLs
+        if (url.startsWith('https://youtu.be/') || url.startsWith('http://youtu.be/')) {
+            const parts = url.split('/');
+            const lastPart = parts[parts.length - 1].split('?')[0].split('#')[0];
+            if (lastPart.length === 11) return lastPart;
         }
 
-        // Проверяем обычные YouTube URL
-        const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[7].length === 11) ? match[7] : false;
+        // Extract video ID from any URL containing v= parameter
+        try {
+            const urlObj = new URL(url);
+            const vParam = urlObj.searchParams.get('v');
+            if (vParam && vParam.length === 11) return vParam;
+        } catch (e) {
+            // Not a full URL, fallback to regex
+        }
+
+        // Check for /shorts/ pattern
+        const shortsMatch = url.match(/(?:youtube\.com\/shorts\/|youtu\.be\/)([^#&?]{11})/);
+        if (shortsMatch) return shortsMatch[1];
+
+        // Check for /live/ pattern (livestreams)
+        const liveMatch = url.match(/(?:youtube\.com\/live\/)([^#&?]{11})/);
+        if (liveMatch) return liveMatch[1];
+
+        // Check for /embed/ pattern
+        const embedMatch = url.match(/(?:youtube\.com\/embed\/)([^#&?]{11})/);
+        if (embedMatch) return embedMatch[1];
+
+        // Check for /v/ pattern
+        const vMatch = url.match(/(?:youtube\.com\/v\/)([^#&?]{11})/);
+        if (vMatch) return vMatch[1];
+
+        // Generic regex for any YouTube URL containing an 11-character ID
+        const genericMatch = url.match(/(?:youtube\.com\/.*[?&]v=|youtu\.be\/)([^#&?]{11})/);
+        if (genericMatch) return genericMatch[1];
+
+        return false;
     }
 
     async getVideoCoverUrl(videoId) {
-        // Функция для проверки размеров изображения
         const checkImage = (url) => {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
-                    // Проверяем, что изображение не является заглушкой
-                    // YouTube возвращает заглушку 120x90 для недоступных размеров
                     if (img.width === 120 && img.height === 90) {
                         resolve(false);
                     } else {
@@ -67,7 +90,6 @@ export class YouTubeService {
             'default.jpg'
         ];
 
-        // Проверяем каждое качество и возвращаем первое доступное
         for (const quality of qualities) {
             const url = `https://img.youtube.com/vi/${videoId}/${quality}`;
             if (await checkImage(url)) {
@@ -75,7 +97,6 @@ export class YouTubeService {
             }
         }
 
-        // Если ни одно изображение не подходит, используем hqdefault
         return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
     }
 
@@ -115,10 +136,13 @@ export class YouTubeService {
     async isVideoEmbeddable(videoId) {
         try {
             const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-            // Даже если oembed не доступен, мы пробуем загрузить видео (оно может быть встраиваемым)
-            return true;
+            if (response.ok) {
+                return true;
+            }
+            return false;
         } catch (error) {
-            return true;
+            console.warn('Embeddability check failed:', error);
+            return false;
         }
     }
 
@@ -130,7 +154,6 @@ export class YouTubeService {
                 return;
             }
 
-            // Очистка предыдущего плеера для предотвращения конфликтов origin
             if (this.player && typeof this.player.destroy === 'function') {
                 try {
                     console.log('Destroying existing YouTube player...');
@@ -142,7 +165,6 @@ export class YouTubeService {
                 this.playerReady = false;
             }
 
-            // Убеждаемся, что целевой элемент существует
             let targetEl = document.getElementById(elementId);
             if (!targetEl) {
                 console.log('Recreating player element:', elementId);
@@ -158,11 +180,11 @@ export class YouTubeService {
                 console.log('Creating YouTube player for:', videoId);
                 this.player = new YT.Player(elementId, {
                     videoId: videoId,
-                    height: '1', // Размер '1' критичен для предотвращения ошибок postMessage на Vercel
+                    height: '1',
                     width: '1',
                     playerVars: {
                         enablejsapi: 1,
-                        // origin: window.location.origin, // Пропуск origin может решить mismatch на Vercel
+                        origin: window.location.origin,
                         controls: 0,
                         modestbranding: 1,
                         playsinline: 1,
@@ -198,12 +220,14 @@ export class YouTubeService {
 
     onPlayerError(event) {
         const errorCodes = {
+            2: 'The request contains an invalid parameter value.',
+            5: 'The requested content cannot be played.',
             100: 'The video requested was not found.',
             101: 'The owner of the requested video does not allow it to be played in embedded players.',
             150: 'This error is the same as 101.'
         };
         const errorCode = event.data;
-        this.dom.showNotification(`Error ${errorCode}: ${errorCodes[errorCode] || 'An unknown error occurred.'}`);
+        this.dom.showNotification(`YouTube Error ${errorCode}: ${errorCodes[errorCode] || 'An unknown error occurred.'}`);
     }
 
     play() {
@@ -245,4 +269,4 @@ export class YouTubeService {
             this.player.setVolume(volume);
         }
     }
-} 
+}
