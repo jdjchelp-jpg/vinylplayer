@@ -116,10 +116,15 @@ export class YouTubeService {
             if (response.ok) {
                 return true;
             }
-            return false;
+            // 401/403 = not embeddable, but other errors = assume embeddable
+            if (response.status === 401 || response.status === 403) {
+                return false;
+            }
+            return true; // Default to true for unknown status codes
         } catch (error) {
-            console.error('Video embedding check failed:', error);
-            return false;
+            // Network error, CORS, or ad blocker — assume embeddable and let YouTube handle it
+            console.warn('Video embedding check failed (assuming embeddable):', error);
+            return true;
         }
     }
 
@@ -131,9 +136,10 @@ export class YouTubeService {
                 return;
             }
 
-            // Check if video is embeddable
+            // Check if video is embeddable (lenient — defaults to true on error)
             const embeddable = await this.isVideoEmbeddable(videoId);
             if (!embeddable) {
+                console.warn('Video not embeddable:', videoId);
                 this.dom.showNotification('This video cannot be embedded or requires login.');
                 return;
             }
@@ -142,10 +148,32 @@ export class YouTubeService {
                 const details = await this.getVideoDetails(videoId);
                 const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-                // Destroy existing player if any to prevent duplicates or binding issues
+                // Destroy existing player if any to prevent duplicates
                 if (this.player && typeof this.player.destroy === 'function') {
-                    this.player.destroy();
+                    try {
+                        this.player.destroy();
+                    } catch (e) {
+                        console.warn('Error destroying previous player:', e);
+                    }
+                    this.player = null;
+                    this.playerReady = false;
                 }
+
+                // Ensure the target element exists (destroy() might not restore it properly)
+                let targetEl = document.getElementById(elementId);
+                if (!targetEl) {
+                    console.log('Recreating player element:', elementId);
+                    targetEl = document.createElement('div');
+                    targetEl.id = elementId;
+                    const container = document.querySelector('.container');
+                    if (container) {
+                        container.appendChild(targetEl);
+                    } else {
+                        document.body.appendChild(targetEl);
+                    }
+                }
+
+                console.log('Creating YouTube player for video:', videoId);
 
                 this.player = new YT.Player(elementId, {
                     videoId: videoId,
@@ -161,6 +189,7 @@ export class YouTubeService {
                     },
                     events: {
                         onReady: (event) => {
+                            console.log('YouTube Player Ready');
                             this.playerReady = true;
                             const data = event.target.getVideoData();
                             const videoData = {
@@ -182,7 +211,6 @@ export class YouTubeService {
             } catch (error) {
                 console.error('Error creating YouTube player:', error);
                 this.dom.showNotification('Error creating YouTube player', 'error');
-                setTimeout(() => tryCreatePlayer(), 100);
             }
         };
 
