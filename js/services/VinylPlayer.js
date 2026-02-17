@@ -549,49 +549,45 @@ export class VinylPlayer {
         arm.addEventListener('mousedown', onMouseDown);
     }
 
-    loadFromUrl(url) {
+    async loadFromUrl(url) {
         if (!url) return;
-        const { videoId, listId } = this.playlistManager.parseUrl(url);
 
-        if (listId) {
-            // NOTE: YouTubeService doesn't support playlists natively via createPlayer yet in this detailed snippet
-            // But we can just add the videos if we knew them?
-            // Or maybe loadPlaylist is needed. 
-            // The provided YouTubeService code only has createPlayer and basic controls.
-            // It doesn't have loadPlaylist.
-            // But we can fallback or implement it. 
-            // For now, let's treat it as not supported or just single video if videoId exists.
-            this.showNotification("Playlists are currently limited. Loading single video if present.");
-
-            // If I want to support playlists, I'd need to fetch the playlist items.
-        }
-
-        if (videoId) {
-            // Add single track
-            this.playlistManager.addToQueue({
-                id: videoId,
-                title: 'Loading...',
-                isVideo: true,
-                isLocal: false
-            });
-
-            // Play it
-            const track = this.playlistManager.getCurrentTrack(); // Might invoke if it was empty, or check queue
-            // Actually playlistManager.addToQueue puts it at end. 
-            // If it was empty, currentTrackIndex is 0.
-
-            if (this.playlistManager.queue.length === 1 || !this.isPlaying) {
-                // Ensure index is at the new track if we want to play it immediately?
-                // Usually addToQueue appends. 
-                // Force play the last added track?
-                const lastIndex = this.playlistManager.queue.length - 1;
-                this.playlistManager.currentTrackIndex = lastIndex;
-                this.playTrack(this.playlistManager.queue[lastIndex]);
-            } else {
-                this.showNotification(translations[this.currentLang].trackAdded, "success");
+        try {
+            if (!url.startsWith('http')) {
+                throw new Error(translations[this.currentLang].invalidUrl || 'Please enter a valid URL');
             }
-        } else {
-            this.showNotification(translations[this.currentLang].invalidUrl, "error");
+
+            const { videoId, listId } = this.playlistManager.parseUrl(url);
+
+            if (listId) {
+                this.showNotification("Playlists are currently limited. Loading single video if present.");
+            }
+
+            if (videoId) {
+                // Add single track
+                this.playlistManager.addToQueue({
+                    id: videoId,
+                    title: 'Loading...',
+                    isVideo: true,
+                    isLocal: false
+                });
+
+                if (this.playlistManager.queue.length === 1 || !this.isPlaying) {
+                    const lastIndex = this.playlistManager.queue.length - 1;
+                    this.playlistManager.currentTrackIndex = lastIndex;
+                    this.playTrack(this.playlistManager.queue[lastIndex]);
+                } else {
+                    this.showNotification(translations[this.currentLang].trackAdded, "success");
+                }
+            } else {
+                throw new Error(translations[this.currentLang].invalidUrl || 'Invalid YouTube URL');
+            }
+        } catch (error) {
+            console.error('Error loading track from URL:', error);
+            this.showNotification(
+                error.message || 'Failed to load track. Please check the URL and try again.',
+                'error'
+            );
         }
     }
 
