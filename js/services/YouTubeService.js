@@ -184,7 +184,6 @@ export class YouTubeService {
                     width: '1',
                     playerVars: {
                         enablejsapi: 1,
-                        origin: window.location.origin,
                         controls: 0,
                         modestbranding: 1,
                         playsinline: 1,
@@ -194,7 +193,12 @@ export class YouTubeService {
                         onReady: async (event) => {
                             console.log('YouTube onReady fired');
                             this.playerReady = true;
-                            const details = await detailsPromise;
+                            let details = null;
+                            try {
+                                details = await detailsPromise;
+                            } catch (e) {
+                                console.warn('Failed to fetch video details:', e);
+                            }
                             const data = event.target.getVideoData();
                             const videoData = {
                                 title: details?.title || data?.title || 'Unknown Title',
