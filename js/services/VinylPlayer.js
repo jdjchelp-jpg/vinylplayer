@@ -76,11 +76,22 @@ export class VinylPlayer {
 
         this.deferredPrompt = null;
         try {
-            this.ffmpeg = new FFmpegWASM.FFmpeg();
-            this.exportEngine = new ExportEngine(this);
-            console.log("ExportEngine initialized");
+            // Check if FFmpegWASM is defined globally
+            const ffmpegLib = (typeof FFmpegWASM !== 'undefined') ? FFmpegWASM : (window.FFmpegWASM || null);
+
+            if (ffmpegLib && ffmpegLib.FFmpeg) {
+                this.ffmpeg = new ffmpegLib.FFmpeg();
+                this.exportEngine = new ExportEngine(this);
+                console.log("ExportEngine initialized");
+            } else {
+                console.warn("FFmpegWASM not found. Export features will be disabled.");
+                this.ffmpeg = null;
+                this.exportEngine = null;
+            }
         } catch (e) {
             console.error("Failed to initialize ExportEngine or FFmpeg:", e);
+            this.ffmpeg = null;
+            this.exportEngine = null;
         }
         this.init();
     }

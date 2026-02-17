@@ -96,8 +96,8 @@ export class YouTubeService {
 
         // Get data from player
         const playerData = this.player.getVideoData();
-        // Get extra data from playerResponse
-        const playerInfo = this.player.getPlayerResponse();
+        // getPlayerResponse is not always available/stable in public IFrame API
+        const playerInfo = (typeof this.player.getPlayerResponse === 'function') ? this.player.getPlayerResponse() : null;
 
         return {
             title: playerData.title,
