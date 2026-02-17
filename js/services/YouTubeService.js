@@ -99,14 +99,16 @@ export class YouTubeService {
         // getPlayerResponse is not always available/stable in public IFrame API
         const playerInfo = (typeof this.player.getPlayerResponse === 'function') ? this.player.getPlayerResponse() : null;
 
+        const title = (playerData?.title && playerData.title !== 'Loading...') ? playerData.title : null;
+        const author = playerInfo?.videoDetails?.author ||
+            playerInfo?.videoDetails?.channelName ||
+            playerData?.author ||
+            'Unknown Artist';
+
         return {
-            title: playerData.title,
-            // Try multiple sources for author/channel
-            author: playerInfo?.videoDetails?.author ||
-                playerInfo?.videoDetails?.channelName ||
-                playerData.author ||
-                'Unknown Artist',
-            video_id: playerData.video_id
+            title: title || 'YouTube Video',
+            author: author,
+            video_id: playerData?.video_id
         };
     }
 
@@ -179,31 +181,32 @@ export class YouTubeService {
                         playsinline: 1
                     },
                     events: {
-                        onReady: async (event) => {
+                        onReady: (event) => {
                             console.log('YouTube Player Ready');
                             this.playerReady = true;
 
-                            // Wait for details if they are still loading, but don't hang onReady
-                            const details = await detailsPromise;
-                            const data = event.target.getVideoData();
+                            // Call onReady immediately with whatever data we have
+                            const quickData = this.getVideoData();
+                            onReady(event, quickData);
 
-                            const videoData = {
-                                title: details?.title || (data.title && data.title !== 'Loading...' ? data.title : null) || 'YouTube Video',
-                                author: details?.author || data.author || 'Unknown Artist'
-                            };
-
-                            onReady(event, videoData);
+                            // Then update with real metadata in the background
+                            detailsPromise.then(details => {
+                                if (details && this.playerReady) {
+                                    const improvedData = {
+                                        title: details.title || quickData.title,
+                                        author: details.author || quickData.author
+                                    };
+                                    console.log('Background metadata loaded:', improvedData);
+                                    onReady(event, improvedData);
+                                }
+                            });
                         },
                         onStateChange: (event) => {
-                            // If title is still 'Loading...' or 'YouTube Video', try to update it when playing
+                            // If title is still 'YouTube Video', try to update it when playing
                             if (event.data === YT.PlayerState.PLAYING) {
                                 const data = this.getVideoData();
-                                if (data && (data.title === 'Loading...' || data.title === 'YouTube Video')) {
-                                    // Try one more time to get real data
-                                    const realData = event.target.getVideoData();
-                                    if (realData && realData.title && realData.title !== 'Loading...') {
-                                        // Trigger a metadata update if needed
-                                    }
+                                if (data && data.title === 'YouTube Video') {
+                                    onReady(event, data);
                                 }
                             }
                             onStateChange(event);
