@@ -116,9 +116,9 @@ export class VinylPlayer {
     onPlayerReady(event, videoData) {
         console.log("Player Ready", videoData);
         this.setVolume(this.volume);
-        if (this.isPlaying) {
-            this.youTubeService.play();
-        }
+
+        // Always play when the player becomes ready (playTrack was called intentionally)
+        this.youTubeService.play();
 
         // Update info if available from ready event
         if (videoData) {
@@ -627,13 +627,17 @@ export class VinylPlayer {
         } else {
             this.isLocalFile = false;
             this.isVideo = true;
+            this.isPlaying = true; // Mark as playing so rotation/tonearm activate on state change
             this.localAudio.pause();
             this.localVideo.pause();
             this.localVideo.style.display = 'none';
 
+            // Start rotation and tonearm immediately for visual feedback
+            this.startRotation();
+            this.moveToneArmToRecord();
+            this.updatePlayButtonIcon(true);
+
             // Use YouTubeService to create/load player
-            // Warning: YouTubeService.createPlayer destroys and recreates the player. 
-            // This is robust but maybe heavy.
             this.youTubeService.createPlayer(
                 'vinylTrack',
                 track.id,

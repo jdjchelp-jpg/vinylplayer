@@ -153,6 +153,7 @@ export class YouTubeService {
                     width: '0',
                     playerVars: {
                         enablejsapi: 1,
+                        autoplay: 1,
                         origin: window.location.origin,
                         controls: 0,
                         modestbranding: 1,
