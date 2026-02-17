@@ -136,18 +136,7 @@ export class YouTubeService {
                 return;
             }
 
-            // Check if video is embeddable (lenient — defaults to true on error)
-            const embeddable = await this.isVideoEmbeddable(videoId);
-            if (!embeddable) {
-                console.warn('Video not embeddable:', videoId);
-                this.dom.showNotification('This video cannot be embedded or requires login.');
-                return;
-            }
-
             try {
-                const details = await this.getVideoDetails(videoId);
-                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
                 // Destroy existing player if any to prevent duplicates
                 if (this.player && typeof this.player.destroy === 'function') {
                     try {
@@ -175,6 +164,9 @@ export class YouTubeService {
 
                 console.log('Creating YouTube player for video:', videoId);
 
+                // Start metadata fetch in parallel (non-blocking)
+                const detailsPromise = this.getVideoDetails(videoId).catch(() => null);
+
                 this.player = new YT.Player(elementId, {
                     videoId: videoId,
                     height: '0',
@@ -188,23 +180,38 @@ export class YouTubeService {
                         playsinline: 1
                     },
                     events: {
-                        onReady: (event) => {
+                        onReady: async (event) => {
                             console.log('YouTube Player Ready');
                             this.playerReady = true;
+
+                            // Wait for details if they are still loading, but don't hang onReady
+                            const details = await detailsPromise;
                             const data = event.target.getVideoData();
+
                             const videoData = {
-                                title: details?.title || data.title || 'Unknown Title',
-                                author: details?.author || 'Unknown Artist'
+                                title: details?.title || (data.title && data.title !== 'Loading...' ? data.title : null) || 'YouTube Video',
+                                author: details?.author || data.author || 'Unknown Artist'
                             };
+
                             onReady(event, videoData);
                         },
-                        onStateChange: onStateChange,
+                        onStateChange: (event) => {
+                            // If title is still 'Loading...' or 'YouTube Video', try to update it when playing
+                            if (event.data === YT.PlayerState.PLAYING) {
+                                const data = this.getVideoData();
+                                if (data && (data.title === 'Loading...' || data.title === 'YouTube Video')) {
+                                    // Try one more time to get real data
+                                    const realData = event.target.getVideoData();
+                                    if (realData && realData.title && realData.title !== 'Loading...') {
+                                        // Trigger a metadata update if needed
+                                    }
+                                }
+                            }
+                            onStateChange(event);
+                        },
                         onError: (event) => {
                             console.error('YouTube Player Error:', event.data);
                             this.onPlayerError(event);
-                            if (event.data === 150 && isSafari) {
-                                console.warn('Retrying in Safari with minimal config...');
-                            }
                         }
                     }
                 });
