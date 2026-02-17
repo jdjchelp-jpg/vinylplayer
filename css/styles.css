@@ -158,7 +158,12 @@ input[type="file"] {
     background-position: center;
     position: absolute;
     animation: rotate 8s linear infinite;
+    animation-play-state: paused;
     -webkit-user-drag: none;
+}
+
+.vinyl-cover.playing {
+    animation-play-state: running;
 }
 
 @keyframes rotate {
@@ -209,7 +214,9 @@ input[type="file"] {
     position: absolute;
     right: -50px;
     top: 60px;
+    transform: rotate(0deg);
     transform-origin: 50% 10%;
+    transition: transform 0.5s ease-in-out;
     cursor: grab;
     -webkit-user-drag: none;
     user-select: none;
@@ -218,6 +225,10 @@ input[type="file"] {
     z-index: 100;
     /* Ensure it's on top */
     pointer-events: auto;
+}
+
+.tonearm.on-record {
+    transform: rotate(25deg) !important;
 }
 
 .tonearm:active {

@@ -691,19 +691,27 @@ export class VinylPlayer {
     }
 
     startRotation() {
-        this.elements.vinylCover.style.animationPlayState = 'running';
+        if (this.elements.vinylCover) {
+            this.elements.vinylCover.classList.add('playing');
+        }
     }
 
     stopRotation() {
-        this.elements.vinylCover.style.animationPlayState = 'paused';
+        if (this.elements.vinylCover) {
+            this.elements.vinylCover.classList.remove('playing');
+        }
     }
 
     moveToneArmToRecord() {
-        this.elements.toneArm.style.transform = 'rotate(25deg)';
+        if (this.elements.toneArm) {
+            this.elements.toneArm.classList.add('on-record');
+        }
     }
 
     moveToneArmOffRecord() {
-        this.elements.toneArm.style.transform = 'rotate(0deg)';
+        if (this.elements.toneArm) {
+            this.elements.toneArm.classList.remove('on-record');
+        }
         if (this.isPlaying) {
             this.updatePlayButtonIcon(true);
         } else {

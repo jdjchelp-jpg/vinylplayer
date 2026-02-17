@@ -16,17 +16,23 @@ export class PlaylistManager {
     }
 
     addTracks(tracks) {
-        this.playlist = tracks;
-        this.currentTrackIndex = 0;
+        // Find if we already have these tracks to avoid duplicates? 
+        // For now, let's just append.
+        const wasEmpty = this.playlist.length === 0;
+        this.playlist = [...this.playlist, ...tracks];
+        if (wasEmpty) this.currentTrackIndex = 0;
     }
 
     // Support for single item add (migration helper)
     addToQueue(item) {
         this.playlist.push(item);
-        if (this.currentTrackIndex === -1) this.currentTrackIndex = 0;
+        if (this.currentTrackIndex === -1 || this.playlist.length === 1) {
+            this.currentTrackIndex = 0;
+        }
     }
 
     getCurrentTrack() {
+        if (this.currentTrackIndex < 0 || this.currentTrackIndex >= this.playlist.length) return null;
         const track = this.playlist[this.currentTrackIndex];
         if (track && track.file && !track.source) {
             // Create URL only when requested
@@ -42,14 +48,16 @@ export class PlaylistManager {
 
     nextTrack() {
         if (this.hasNextTrack()) {
-            // Revoke URL of previous track
-            const currentTrack = this.playlist[this.currentTrackIndex];
-            if (currentTrack && currentTrack.source && currentTrack.file) {
-                URL.revokeObjectURL(currentTrack.source);
-                currentTrack.source = '';
-            }
+            // Revoke URL of previous track if it was a local file to save memory
+            // But be careful if we want to go back. 
+            // Better: only revoke if we are sure we won't need it soon, or just keep it until clear().
+            // Let's keep URLs for now to allow back/forth without flashing/re-loading.
 
             this.currentTrackIndex++;
+            return this.getCurrentTrack();
+        } else if (this.playlist.length > 0) {
+            // Optional: Loop to beginning
+            this.currentTrackIndex = 0;
             return this.getCurrentTrack();
         }
         return null;
