@@ -289,6 +289,13 @@
                 </label>
             </div>
             <div class="setting-item">
+                <span>Glass Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="glassModeToggle">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="setting-item">
                 <span data-i18n="language">Language</span>
                 <select id="languageSelect">
                     <option value="en">English</option>
@@ -344,5 +351,18 @@
         }
     </script>
 </body>
+
+<!-- SVG Filter for Glass Displacement Effect -->
+<svg style="position:absolute;width:0;height:0;">
+    <defs>
+        <filter id="glassDisplacement" x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="2" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G"
+                result="displaced" />
+            <feGaussianBlur in="displaced" stdDeviation="0.5" result="blurred" />
+            <feComposite in="blurred" in2="SourceGraphic" operator="over" />
+        </filter>
+    </defs>
+</svg>
 
 </html>

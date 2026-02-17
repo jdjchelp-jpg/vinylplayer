@@ -70,7 +70,8 @@ export class VinylPlayer {
             descToggle: document.querySelector('.desc-toggle'),
             installBtn: document.getElementById('installBtn'),
             exportVideoBtn: document.getElementById('exportVideoBtn'),
-            renderModeToggle: document.getElementById('renderModeToggle')
+            renderModeToggle: document.getElementById('renderModeToggle'),
+            glassModeToggle: document.getElementById('glassModeToggle')
         };
 
         this.deferredPrompt = null;
@@ -106,6 +107,9 @@ export class VinylPlayer {
                 this.elements.installBtn.style.display = 'flex';
             }
         });
+
+        // Restore Glass Mode from localStorage
+        this.restoreGlassMode();
     }
 
     // Callbacks for YouTubeService
@@ -438,6 +442,13 @@ export class VinylPlayer {
                 this.updateSettings();
             });
         }
+
+        // Glass Mode toggle
+        if (this.elements.glassModeToggle) {
+            this.elements.glassModeToggle.addEventListener('change', () => {
+                this.setGlassMode(this.elements.glassModeToggle.checked);
+            });
+        }
     }
 
     handleFileUpload(files) {
@@ -514,7 +525,10 @@ export class VinylPlayer {
             isDragging = false;
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+
+            // IMPORTANT: Clear inline styles so CSS classes can take effect
             arm.style.transition = '';
+            arm.style.transform = '';
 
             // Check if dropped on record
             const recordRect = this.elements.vinylRecord.getBoundingClientRect();
@@ -908,6 +922,27 @@ export class VinylPlayer {
         }
         if (this.isPlaying) {
             this.toggleVideoMode(true);
+        }
+    }
+
+    // Glass Mode
+    setGlassMode(enabled) {
+        if (enabled) {
+            document.body.classList.add('glass-mode');
+        } else {
+            document.body.classList.remove('glass-mode');
+        }
+        localStorage.setItem('glassModeEnabled', enabled ? 'true' : 'false');
+    }
+
+    restoreGlassMode() {
+        const saved = localStorage.getItem('glassModeEnabled');
+        const enabled = saved === 'true';
+        if (this.elements.glassModeToggle) {
+            this.elements.glassModeToggle.checked = enabled;
+        }
+        if (enabled) {
+            document.body.classList.add('glass-mode');
         }
     }
 
