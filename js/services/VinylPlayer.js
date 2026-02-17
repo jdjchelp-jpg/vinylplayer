@@ -22,8 +22,10 @@ export class VinylPlayer {
         this.localAudio = new Audio();
         this.localVideo = document.getElementById('localVideo');
         this.isLocalFile = false;
+        this.isVideo = false;
         this.holidayManager = new HolidayManager();
         this.chapters = []; // Store chapters
+        this.currentExportTrack = null; // For export cleanup
 
         this.elements = {
             vinylRecord: document.querySelector('.vinyl-record'),
@@ -91,6 +93,10 @@ export class VinylPlayer {
         this.updateLanguage(this.currentLang);
         this.checkHoliday();
         this.updateSettings();
+
+        // Ensure vinyl is initially stationary and tonearm is off
+        this.stopRotation();
+        this.moveToneArmOffRecord();
 
         // PWA Install Prompt
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -734,6 +740,10 @@ export class VinylPlayer {
                             }
                             const base64 = "data:" + format + ";base64," + window.btoa(base64String);
                             this.elements.vinylCover.style.backgroundImage = `url('${base64}')`;
+                            // Set albumCoverImg for canvas export
+                            this.albumCoverImg = new Image();
+                            this.albumCoverImg.crossOrigin = "Anonymous";
+                            this.albumCoverImg.src = base64;
                         }
 
                         if (tags.lyrics) {
@@ -1231,78 +1241,320 @@ export class VinylPlayer {
             });
             this.elements.chapterList.appendChild(logContainer);
         }
-    }
 
     async installApp() {
-        if (!this.deferredPrompt) return;
-        this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-        console.log(`User response: ${outcome}`);
-        this.deferredPrompt = null;
-        if (this.elements.installBtn) this.elements.installBtn.style.display = 'none';
-    }
+            if (!this.deferredPrompt) return;
+            this.deferredPrompt.prompt();
+            const { outcome } = await this.deferredPrompt.userChoice;
+            console.log(`User response: ${outcome}`);
+            this.deferredPrompt = null;
+            if (this.elements.installBtn) this.elements.installBtn.style.display = 'none';
+        }
 
-    renderToCanvas(ctx, width, height, time) {
-        // ... (Keep the 4K render logic as implemented previously)
-        if (this.elements.renderModeToggle && this.elements.renderModeToggle.checked) {
-            ctx.fillStyle = "#191616";
-            ctx.fillRect(0, 0, width, height);
-        } else {
-            const gradient = ctx.createLinearGradient(0, 0, 0, height);
-            gradient.addColorStop(0, "#80bfff");
-            gradient.addColorStop(1, "#191616");
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, width, height);
-        }
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const vinylSize = Math.min(width, height) * 0.8;
-        ctx.save();
-        ctx.translate(centerX - (vinylSize * 0.1), centerY);
-        const rotation = (time * 60 * Math.PI * 2) / 60;
-        ctx.rotate(rotation);
-        ctx.beginPath();
-        ctx.arc(0, 0, vinylSize / 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#111";
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.1)";
-        for (let i = 0; i < 20; i++) {
-            ctx.beginPath();
-            ctx.arc(0, 0, (vinylSize / 2) * (i / 20), 0, Math.PI * 2);
-            ctx.stroke();
-        }
-        if (this.albumCoverImg && this.albumCoverImg.complete) {
+        renderToCanvas(ctx, width, height, time) {
+            // ... (Keep the 4K render logic as implemented previously)
+            if (this.elements.renderModeToggle && this.elements.renderModeToggle.checked) {
+                ctx.fillStyle = "#191616";
+                ctx.fillRect(0, 0, width, height);
+            } else {
+                const gradient = ctx.createLinearGradient(0, 0, 0, height);
+                gradient.addColorStop(0, "#80bfff");
+                gradient.addColorStop(1, "#191616");
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, width, height);
+            }
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const vinylSize = Math.min(width, height) * 0.8;
             ctx.save();
+            ctx.translate(centerX - (vinylSize * 0.1), centerY);
+            const rotation = (time * 60 * Math.PI * 2) / 60;
+            ctx.rotate(rotation);
             ctx.beginPath();
             ctx.arc(0, 0, vinylSize / 2, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(this.albumCoverImg, -vinylSize / 2, -vinylSize / 2, vinylSize, vinylSize);
+            ctx.fillStyle = "#111";
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.1)";
+            for (let i = 0; i < 20; i++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, (vinylSize / 2) * (i / 20), 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            if (this.albumCoverImg && this.albumCoverImg.complete) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, vinylSize / 2, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(this.albumCoverImg, -vinylSize / 2, -vinylSize / 2, vinylSize, vinylSize);
+                ctx.restore();
+            }
             ctx.restore();
+            ctx.save();
+            ctx.translate(centerX + (vinylSize * 0.4), centerY - (vinylSize * 0.4));
+            const duration = this.isLocalFile ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration) : this.youTubeService.getDuration();
+            const progress = duration > 0 ? time / duration : 0;
+            const armAngle = 0.2 + (progress * 0.3);
+            ctx.rotate(armAngle);
+            ctx.fillStyle = "#444";
+            ctx.fillRect(-10, 0, 20, vinylSize * 0.6);
+            ctx.restore();
+            ctx.fillStyle = "white";
+            ctx.font = `${height * 0.03}px Arial`;
+            const title = this.elements.textTitle.textContent || "Unknown Title";
+            const author = this.elements.textAuthor.textContent || "Unknown Author";
+            ctx.fillText(title, 50, height - 150);
+            ctx.font = `${height * 0.02}px Arial`;
+            ctx.fillText(author, 50, height - 110);
+            const barWidth = width - 100;
+            const barHeight = 10;
+            ctx.fillStyle = "rgba(255,255,255,0.3)";
+            ctx.fillRect(50, height - 80, barWidth, barHeight);
+            ctx.fillStyle = "white";
+            ctx.fillRect(50, height - 80, barWidth * progress, barHeight);
+            const timeStr = `${this.formatTime(time)} / ${this.formatTime(duration)}`;
+            ctx.fillText(timeStr, width - 200, height - 110);
         }
-        ctx.restore();
-        ctx.save();
-        ctx.translate(centerX + (vinylSize * 0.4), centerY - (vinylSize * 0.4));
-        const duration = this.isLocalFile ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration) : this.youTubeService.getDuration();
-        const progress = duration > 0 ? time / duration : 0;
-        const armAngle = 0.2 + (progress * 0.3);
-        ctx.rotate(armAngle);
-        ctx.fillStyle = "#444";
-        ctx.fillRect(-10, 0, 20, vinylSize * 0.6);
-        ctx.restore();
-        ctx.fillStyle = "white";
-        ctx.font = `${height * 0.03}px Arial`;
-        const title = this.elements.textTitle.textContent || "Unknown Title";
-        const author = this.elements.textAuthor.textContent || "Unknown Author";
-        ctx.fillText(title, 50, height - 150);
-        ctx.font = `${height * 0.02}px Arial`;
-        ctx.fillText(author, 50, height - 110);
-        const barWidth = width - 100;
-        const barHeight = 10;
-        ctx.fillStyle = "rgba(255,255,255,0.3)";
-        ctx.fillRect(50, height - 80, barWidth, barHeight);
-        ctx.fillStyle = "white";
-        ctx.fillRect(50, height - 80, barWidth * progress, barHeight);
-        const timeStr = `${this.formatTime(time)} / ${this.formatTime(duration)}`;
-        ctx.fillText(timeStr, width - 200, height - 110);
+
+// Export preparation and audio capture methods
+
+async loadAlbumCoverFromFile(file, track) {
+            return new Promise((resolve) => {
+                jsmediatags.read(file, {
+                    onSuccess: (tag) => {
+                        const tags = tag.tags;
+                        // Update title and author from tags if available
+                        if (tags.title) {
+                            track.title = tags.title;
+                            this.elements.textTitle.textContent = tags.title;
+                        }
+                        if (tags.artist) {
+                            track.author = tags.artist;
+                            this.elements.textAuthor.textContent = tags.artist;
+                        }
+                        // Update description if either changed
+                        if (tags.title || tags.artist) {
+                            this.updateDesc(this.elements.textAuthor.textContent, this.elements.textTitle.textContent);
+                        }
+                        if (tags.picture) {
+                            const { data, format } = tags.picture;
+                            let base64String = "";
+                            for (let i = 0; i < data.length; i++) {
+                                base64String += String.fromCharCode(data[i]);
+                            }
+                            const base64 = "data:" + format + ";base64," + window.btoa(base64String);
+                            const img = new Image();
+                            img.crossOrigin = "Anonymous";
+                            img.onload = () => {
+                                this.albumCoverImg = img;
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                console.warn('Failed to load album cover image');
+                                this.albumCoverImg = null;
+                                resolve();
+                            };
+                            img.src = base64;
+                        } else {
+                            resolve();
+                        }
+                    },
+                    onError: (err) => {
+                        console.log('Error reading tags:', err);
+                        resolve();
+                    }
+                });
+            });
+        }
+
+async loadYouTubeTrackForExport(track) {
+            return new Promise(async (resolve, reject) => {
+                // Fetch video details for title/author
+                const details = await this.youTubeService.getVideoDetails(track.id);
+                if (details) {
+                    track.title = details.title;
+                    track.author = details.author;
+                    this.elements.textTitle.textContent = details.title;
+                    this.elements.textAuthor.textContent = details.author;
+                    this.updateDesc(details.author, details.title);
+                }
+                const onReady = (event, videoData) => {
+                    const duration = this.youTubeService.getDuration();
+                    track.duration = duration;
+                    this.youTubeService.getVideoCoverUrl(track.id)
+                        .then(url => {
+                            this.albumCoverImg = new Image();
+                            this.albumCoverImg.crossOrigin = "Anonymous";
+                            this.albumCoverImg.onload = () => resolve(duration);
+                            this.albumCoverImg.onerror = () => resolve(duration);
+                            this.albumCoverImg.src = url;
+                        })
+                        .catch(err => {
+                            console.warn('Failed to get cover for YouTube video', err);
+                            resolve(duration);
+                        });
+                };
+                const onStateChange = (event) => {
+                    // ignore
+                };
+                this.isLocalFile = false;
+                this.isVideo = true;
+                this.youTubeService.createPlayer('vinylTrack', track.id, onReady, onStateChange);
+                setTimeout(() => {
+                    if (track.duration === undefined) {
+                        reject(new Error('YouTube load timeout for video: ' + track.id));
+                    }
+                }, 30000);
+            });
+        }
+
+async prepareTrackForExport(track) {
+            // Cleanup previous track if any
+            if (this.currentExportTrack && this.currentExportTrack !== track) {
+                this.cleanupTrack(this.currentExportTrack);
+            }
+            this.currentExportTrack = track;
+            this.albumCoverImg = null; // reset for this track
+
+            if (track.isLocal) {
+                this.isLocalFile = true;
+                this.isVideo = track.isVideo;
+                // Ensure source blob URL
+                if (!track.source && track.file) {
+                    track.source = URL.createObjectURL(track.file);
+                }
+                const media = track.isVideo ? this.localVideo : this.localAudio;
+                // Pause and clear any previous source
+                media.pause();
+                media.src = track.source;
+                // Wait for metadata
+                await new Promise((resolve, reject) => {
+                    const onLoaded = () => resolve();
+                    const onError = (e) => reject(e);
+                    media.addEventListener('loadedmetadata', onLoaded, { once: true });
+                    media.addEventListener('error', onError, { once: true });
+                });
+                track.duration = media.duration;
+                // Set default author if not set
+                if (!track.author) {
+                    track.author = "Local File";
+                }
+                // Update UI initially with file name and default author
+                this.elements.textTitle.textContent = track.title;
+                this.elements.textAuthor.textContent = track.author;
+                this.updateDesc(this.elements.textAuthor.textContent, this.elements.textTitle.textContent);
+                // Load tags to possibly override title/author and get cover
+                await this.loadAlbumCoverFromFile(track.file, track);
+            } else {
+                // YouTube track
+                await this.loadYouTubeTrackForExport(track);
+            }
+        }
+
+async captureTrackAudio(track) {
+            const sampleRate = 48000;
+            let audioBuffer;
+            if (track.isLocal) {
+                // Fetch the audio file as array buffer
+                const response = await fetch(track.source);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+                try {
+                    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                } catch (e) {
+                    throw new Error('Failed to decode audio: ' + e);
+                } finally {
+                    audioCtx.close();
+                }
+            } else {
+                // YouTube: generate silent audio buffer
+                const numSamples = Math.floor(track.duration * sampleRate);
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+                audioBuffer = audioCtx.createBuffer(2, numSamples, sampleRate);
+                // Silent by default
+                audioCtx.close();
+            }
+            // Ensure exact sample count matches track.duration * sampleRate
+            const expectedSamples = Math.floor(track.duration * sampleRate);
+            if (audioBuffer.length !== expectedSamples) {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+                const newBuffer = audioCtx.createBuffer(2, expectedSamples, sampleRate);
+                for (let ch = 0; ch < 2; ch++) {
+                    const originalData = audioBuffer.getChannelData(ch);
+                    if (originalData.length >= expectedSamples) {
+                        newBuffer.copyToChannel(originalData.subarray(0, expectedSamples), ch);
+                    } else {
+                        newBuffer.copyToChannel(originalData, ch, 0);
+                    }
+                }
+                audioBuffer = newBuffer;
+                audioCtx.close();
+            }
+            return this.encodeWAV(audioBuffer);
+        }
+
+        encodeWAV(audioBuffer) {
+            const numChannels = audioBuffer.numberOfChannels;
+            const sampleRate = audioBuffer.sampleRate;
+            const length = audioBuffer.length;
+            const bitsPerSample = 16;
+            const blockAlign = numChannels * bitsPerSample / 8;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = length * blockAlign;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            // RIFF chunk descriptor
+            this.writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            this.writeString(view, 8, 'WAVE');
+            // fmt sub-chunk
+            this.writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM format
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+            // data sub-chunk
+            this.writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            // Write audio data
+            const channels = [];
+            for (let i = 0; i < numChannels; i++) {
+                channels.push(audioBuffer.getChannelData(i));
+            }
+            let offset = 44;
+            for (let i = 0; i < length; i++) {
+                for (let ch = 0; ch < numChannels; ch++) {
+                    const sample = Math.max(-1, Math.min(1, channels[ch][i]));
+                    const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(offset, intSample, true);
+                    offset += 2;
+                }
+            }
+            return new Uint8Array(buffer);
+        }
+
+        writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        cleanupTrack(track) {
+            if (track && track.isLocal && track.source) {
+                if (this.localVideo.src === track.source) {
+                    this.localVideo.pause();
+                    this.localVideo.src = '';
+                }
+                if (this.localAudio.src === track.source) {
+                    this.localAudio.pause();
+                    this.localAudio.src = '';
+                }
+                URL.revokeObjectURL(track.source);
+                track.source = '';
+            }
+        }
     }
-}
