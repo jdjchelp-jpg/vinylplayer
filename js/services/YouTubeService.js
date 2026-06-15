@@ -133,20 +133,40 @@ export class YouTubeService {
         }
     }
 
-    async isVideoEmbeddable(videoId) {
-        try {
-            const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-            if (response.ok) {
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.warn('Embeddability check failed:', error);
-            return false;
-        }
-    }
+    // ponytail: isVideoEmbeddable is removed because it is dead code not called anywhere in the app.
 
     createPlayer(elementId, videoId, onReady, onStateChange) {
+        this.onReadyCallback = onReady;
+        this.onStateChangeCallback = onStateChange;
+
+        // ponytail: Reuse existing player instance instead of destroying it. Recreating iframe blocks autoplay and triggers browser autoplay restrictions.
+        if (this.player && this.playerReady) {
+            const detailsPromise = this.getVideoDetails(videoId);
+            try {
+                this.player.loadVideoById({ videoId });
+                detailsPromise.then(details => {
+                    const data = this.player.getVideoData();
+                    const videoData = {
+                        title: details?.title || data?.title || 'Unknown Title',
+                        author: details?.author || data?.author || 'Unknown Artist'
+                    };
+                    if (this.onReadyCallback) this.onReadyCallback({ target: this.player }, videoData);
+                }).catch(() => {
+                    const data = this.player.getVideoData();
+                    if (this.onReadyCallback) this.onReadyCallback({ target: this.player }, {
+                        title: data?.title || 'Unknown Title',
+                        author: data?.author || 'Unknown Artist'
+                    });
+                });
+            } catch (e) {
+                console.warn("Failed to load video on existing player, recreating:", e);
+                this.player = null;
+                this.playerReady = false;
+                this.createPlayer(elementId, videoId, onReady, onStateChange);
+            }
+            return;
+        }
+
         const tryCreatePlayer = async () => {
             if (!this.isReady) {
                 console.log('Waiting for YouTube API to be ready...');
@@ -154,59 +174,37 @@ export class YouTubeService {
                 return;
             }
 
-            if (this.player && typeof this.player.destroy === 'function') {
-                try {
-                    console.log('Destroying existing YouTube player...');
-                    this.player.destroy();
-                } catch (e) {
-                    console.warn('Error destroying player:', e);
-                }
-                this.player = null;
-                this.playerReady = false;
-            }
-
-            let targetEl = document.getElementById(elementId);
-            if (!targetEl) {
-                console.log('Recreating player element:', elementId);
-                targetEl = document.createElement('div');
-                targetEl.id = elementId;
-                const container = document.querySelector('.container') || document.body;
-                container.appendChild(targetEl);
-            }
-
+            // ponytail: Maintain player as 360x360. 1x1 dimensions get flagged by browsers as invisible/hidden backgrounds and get paused.
             try {
                 const detailsPromise = this.getVideoDetails(videoId);
-
                 console.log('Creating YouTube player for:', videoId);
                 this.player = new YT.Player(elementId, {
                     videoId: videoId,
-                    height: '1',
-                    width: '1',
+                    height: '360',
+                    width: '360',
                     playerVars: {
                         enablejsapi: 1,
                         controls: 0,
                         modestbranding: 1,
                         playsinline: 1,
-                        autoplay: 1
+                        autoplay: 1,
+                        origin: window.location.origin
                     },
                     events: {
                         onReady: async (event) => {
                             console.log('YouTube onReady fired');
                             this.playerReady = true;
-                            let details = null;
-                            try {
-                                details = await detailsPromise;
-                            } catch (e) {
-                                console.warn('Failed to fetch video details:', e);
-                            }
+                            const details = await detailsPromise.catch(() => null);
                             const data = event.target.getVideoData();
                             const videoData = {
                                 title: details?.title || data?.title || 'Unknown Title',
                                 author: details?.author || data?.author || 'Unknown Artist'
                             };
-                            onReady(event, videoData);
+                            if (this.onReadyCallback) this.onReadyCallback(event, videoData);
                         },
-                        onStateChange: onStateChange,
+                        onStateChange: (event) => {
+                            if (this.onStateChangeCallback) this.onStateChangeCallback(event);
+                        },
                         onError: (event) => {
                             console.error('YouTube Player Error:', event.data);
                             this.onPlayerError(event);

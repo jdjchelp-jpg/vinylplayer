@@ -136,6 +136,8 @@ export class VinylPlayer {
             this.elements.textTitle.textContent = videoData.title;
             this.elements.textAuthor.textContent = videoData.author;
             this.updateDesc(videoData.author, videoData.title);
+            // ponytail: update media session info on ready
+            this.updateMediaSession(videoData);
         }
     }
 
@@ -148,6 +150,8 @@ export class VinylPlayer {
             this.moveToneArmToRecord();
             this.startProgressLoop();
             this.updatePlayButtonIcon(true);
+            // ponytail: sync playback state
+            this.updateMediaSessionPlaybackState('playing');
 
             // Update metadata again on play to be sure
             const data = this.youTubeService.getVideoData();
@@ -155,16 +159,19 @@ export class VinylPlayer {
                 this.elements.textTitle.textContent = data.title;
                 this.elements.textAuthor.textContent = data.author;
                 this.updateDesc(data.author, data.title);
+                this.updateMediaSession(data);
             }
 
         } else if (event.data == YT.PlayerState.PAUSED) {
             this.isPlaying = false;
             this.stopRotation();
             this.updatePlayButtonIcon(false);
+            this.updateMediaSessionPlaybackState('paused');
         } else if (event.data == YT.PlayerState.ENDED) {
             this.isPlaying = false;
             this.stopRotation();
             this.updatePlayButtonIcon(false);
+            this.updateMediaSessionPlaybackState('none');
             this.playNext();
         }
     }
@@ -196,12 +203,16 @@ export class VinylPlayer {
         this.startRotation();
         this.moveToneArmToRecord();
         this.updatePlayButtonIcon(true);
+        // ponytail: sync playback state
+        this.updateMediaSessionPlaybackState('playing');
     }
 
     onLocalPause() {
         this.isPlaying = false;
         this.stopRotation();
         this.updatePlayButtonIcon(false);
+        // ponytail: sync playback state
+        this.updateMediaSessionPlaybackState('paused');
     }
 
     onLocalEnded() {
@@ -757,6 +768,12 @@ export class VinylPlayer {
 
             this.updateDesc(this.elements.textAuthor.textContent, track.title);
 
+            // ponytail: Set initial local Media Session state
+            this.updateMediaSession({
+                title: track.title,
+                author: "Local File"
+            });
+
             if (track.file) {
                 jsmediatags.read(track.file, {
                     onSuccess: (tag) => {
@@ -765,13 +782,14 @@ export class VinylPlayer {
                         if (tags.artist) this.elements.textAuthor.textContent = tags.artist;
                         this.updateDesc(this.elements.textAuthor.textContent, this.elements.textTitle.textContent);
 
+                        let base64 = null;
                         if (tags.picture) {
                             const { data, format } = tags.picture;
                             let base64String = "";
                             for (let i = 0; i < data.length; i++) {
                                 base64String += String.fromCharCode(data[i]);
                             }
-                            const base64 = "data:" + format + ";base64," + window.btoa(base64String);
+                            base64 = "data:" + format + ";base64," + window.btoa(base64String);
                             this.elements.vinylCover.style.backgroundImage = `url('${base64}')`;
                             // Set albumCoverImg for canvas export
                             this.albumCoverImg = new Image();
@@ -783,6 +801,13 @@ export class VinylPlayer {
                             this.elements.lyricsContent.textContent = tags.lyrics.lyrics || tags.lyrics;
                             this.elements.lyricsToggle.style.display = 'block';
                         }
+
+                        // ponytail: update media session with extracted tags
+                        this.updateMediaSession({
+                            title: this.elements.textTitle.textContent,
+                            author: this.elements.textAuthor.textContent,
+                            cover: base64
+                        });
                     },
                     onError: (error) => console.log('Error reading tags:', error)
                 });
@@ -799,6 +824,13 @@ export class VinylPlayer {
                     this.albumCoverImg = new Image();
                     this.albumCoverImg.crossOrigin = "Anonymous";
                     this.albumCoverImg.src = url;
+
+                    // ponytail: update media session with cover image
+                    this.updateMediaSession({
+                        title: this.elements.textTitle.textContent || 'YouTube Video',
+                        author: this.elements.textAuthor.textContent || 'Unknown Artist',
+                        cover: url
+                    });
                 });
             }
         }
@@ -885,6 +917,46 @@ export class VinylPlayer {
             if (this.isLocalFile && this.isVideo) {
                 this.localVideo.style.display = 'none';
             }
+        }
+    }
+
+    // ponytail: Media Session API enables native OS background and lock screen media integration.
+    updateMediaSession(metadata) {
+        if (!('mediaSession' in navigator)) return;
+
+        const title = metadata?.title || this.elements.textTitle.textContent || 'Unknown Title';
+        const artist = metadata?.author || metadata?.artist || this.elements.textAuthor.textContent || 'Unknown Artist';
+        
+        let cover = 'images/favicon.png';
+        if (metadata?.cover) {
+            cover = metadata.cover;
+        } else if (this.isLocalFile) {
+            cover = 'images/vinyl-cover.png';
+        } else {
+            const currentTrack = this.playlistManager.getCurrentTrack();
+            if (currentTrack?.id) {
+                cover = `https://img.youtube.com/vi/${currentTrack.id}/hqdefault.jpg`;
+            }
+        }
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: title,
+            artist: artist,
+            album: 'Vinyl Player',
+            artwork: [
+                { src: cover, sizes: '512x512', type: 'image/png' }
+            ]
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => this.play());
+        navigator.mediaSession.setActionHandler('pause', () => this.pause());
+        navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
+        navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+    }
+
+    updateMediaSessionPlaybackState(state) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = state;
         }
     }
 
