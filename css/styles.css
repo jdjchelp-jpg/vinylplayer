@@ -2,20 +2,20 @@
 
 /* ponytail: Single source of truth for all design tokens — change here, propagates everywhere. No preprocessor needed. */
 :root {
-    --clr-bg-deep:      #0d1b2a;
-    --clr-bg-surface:   #1b263b;
-    --clr-accent:       hsl(210, 80%, 55%);
-    --clr-accent-glow:  hsla(210, 80%, 55%, 0.35);
-    --clr-text:         rgba(255,255,255,0.92);
-    --clr-text-muted:   rgba(255,255,255,0.5);
-    --clr-glass:        rgba(255,255,255,0.07);
-    --clr-border:       rgba(255,255,255,0.12);
-    --radius-sm:        8px;
-    --radius-md:        14px;
-    --radius-pill:      999px;
-    --shadow-pop:       0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
-    --transition-fast:  all 0.18s cubic-bezier(0.4,0,0.2,1);
-    --transition-med:   all 0.3s cubic-bezier(0.4,0,0.2,1);
+    --clr-bg-deep: #0d1b2a;
+    --clr-bg-surface: #1b263b;
+    --clr-accent: hsl(210, 80%, 55%);
+    --clr-accent-glow: hsla(210, 80%, 55%, 0.35);
+    --clr-text: rgba(255, 255, 255, 0.92);
+    --clr-text-muted: rgba(255, 255, 255, 0.5);
+    --clr-glass: rgba(255, 255, 255, 0.07);
+    --clr-border: rgba(255, 255, 255, 0.12);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-pill: 999px;
+    --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+    --transition-fast: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-med: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
@@ -338,8 +338,8 @@ input[type="file"] {
 .loading-spinner {
     width: 50px;
     height: 50px;
-    border: 5px solid #f3f3f3;
-    border-top: 5px solid #3498db;
+    border: 5px solid rgba(255, 255, 255, 0.15);
+    border-top: 5px solid var(--clr-accent);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -383,9 +383,9 @@ input[type="file"] {
 
 .menu-toggle:hover {
     background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255,255,255,0.25);
+    border-color: rgba(255, 255, 255, 0.25);
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .menu-toggle:active {
@@ -415,15 +415,19 @@ input[type="file"] {
     min-width: 200px;
     /* ponytail: animate-in via CSS only, no JS needed */
     transform-origin: top left;
-    animation: menuFadeIn 0.18s cubic-bezier(0.4,0,0.2,1) both;
+    animation: menuFadeIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @keyframes menuFadeIn {
-    from { opacity: 0; transform: scale(0.95) translateY(-6px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-    gap: 10px;
-    min-width: 200px;
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .menu-items.active {
@@ -490,12 +494,19 @@ input[type="file"] {
     border: 1px solid var(--clr-border);
     box-shadow: var(--shadow-pop);
     /* ponytail: scale-in entrance for polish — pure CSS, no JS */
-    animation: modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
+    animation: modalIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.92); }
-    to   { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .modal h2 {
@@ -525,7 +536,7 @@ input[type="file"] {
 .modal input:focus,
 .modal textarea:focus {
     border-color: var(--clr-accent);
-    background: rgba(255,255,255,0.09);
+    background: rgba(255, 255, 255, 0.09);
     box-shadow: 0 0 0 3px var(--clr-accent-glow);
 }
 
@@ -567,7 +578,7 @@ input[type="file"] {
     z-index: 3000;
     max-width: 340px;
     transform: translateX(calc(100% + 24px));
-    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
     opacity: 0;
     display: flex;
 }
@@ -685,37 +696,53 @@ input[type="file"] {
     /* Увеличим z-index */
 }
 
+/* ponytail: desc-toggle now matches menu-toggle — same tokens, same feel */
 .desc-toggle {
-    background: none;
-    border: 1px solid white;
-    border-radius: 5px;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 7px;
-    padding-bottom: 7px;
+    background: var(--clr-glass);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
     cursor: pointer;
-    color: white;
-    transition: background-color 0.3s;
-    filter: drop-shadow(0px 0px 2px gray);
+    color: var(--clr-text);
+    transition: var(--transition-fast);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .desc-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.desc-toggle:active {
+    transform: translateY(0);
+}
+
+.desc-toggle:focus-visible {
+    outline: 2px solid var(--clr-accent);
+    outline-offset: 2px;
 }
 
 .desc-items {
     position: absolute;
     top: 100%;
     right: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(10px);
-    border-radius: 5px;
-    padding: 10px;
+    background: rgba(15, 25, 42, 0.88);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+    padding: 8px;
     margin-top: 10px;
     display: none;
     flex-direction: column;
-    gap: 10px;
+    gap: 4px;
     min-width: 300px;
+    box-shadow: var(--shadow-pop);
+    transform-origin: top right;
+    animation: menuFadeIn 0.18s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .desc-items.active {
@@ -726,13 +753,15 @@ input[type="file"] {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px;
-    color: white;
+    padding: 10px 12px;
+    color: var(--clr-text);
     background: none;
     border: none;
-    transition: background-color 0.3s;
-    border-radius: 5px;
-    font-size: large;
+    transition: var(--transition-fast);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-family: inherit;
+    line-height: 1.5;
 }
 
 .clock-container {
@@ -749,7 +778,7 @@ input[type="file"] {
     font-size: 7em;
     font-family: 'Outfit', sans-serif;
     font-weight: 800;
-    filter: drop-shadow(0px 4px 12px rgba(0,0,0,0.3));
+    filter: drop-shadow(0px 4px 12px rgba(0, 0, 0, 0.3));
 }
 
 /* Controls Container */
@@ -762,11 +791,14 @@ input[type="file"] {
     display: flex;
     align-items: center;
     gap: 15px;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(13, 22, 40, 0.82);
+    border: 1px solid var(--clr-border);
     padding: 10px 20px;
-    border-radius: 30px;
-    backdrop-filter: blur(10px);
-    color: white;
+    border-radius: var(--radius-pill);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: var(--shadow-pop);
+    color: var(--clr-text);
     width: 400px;
     z-index: 100;
 }
@@ -800,13 +832,11 @@ input[type="file"] {
     appearance: none;
     -webkit-appearance: none;
     /* ponytail: CSS custom property drives fill color — no JS needed for the track fill */
-    background: linear-gradient(
-        to right,
-        var(--clr-accent) 0%,
-        var(--clr-accent) var(--progress, 0%),
-        rgba(255,255,255,0.2) var(--progress, 0%),
-        rgba(255,255,255,0.2) 100%
-    );
+    background: linear-gradient(to right,
+            var(--clr-accent) 0%,
+            var(--clr-accent) var(--progress, 0%),
+            rgba(255, 255, 255, 0.2) var(--progress, 0%),
+            rgba(255, 255, 255, 0.2) 100%);
     border-radius: var(--radius-pill);
     cursor: pointer;
     transition: height 0.15s ease;
@@ -886,11 +916,11 @@ input[type="file"] {
 }
 
 input:checked+.slider {
-    background-color: #2196F3;
+    background-color: var(--clr-accent);
 }
 
 input:focus+.slider {
-    box-shadow: 0 0 1px #2196F3;
+    box-shadow: 0 0 0 3px var(--clr-accent-glow);
 }
 
 input:checked+.slider:before {
@@ -1003,7 +1033,15 @@ input:checked+.slider:before {
 .desc-container {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Add this to prevent the child elements from shrinking or breaking lines */
+.desc-container>* {
+    flex-shrink: 0;
 }
 
 /* Lyrics Modal */
@@ -1019,11 +1057,21 @@ input:checked+.slider:before {
 
 /* Language Select */
 #languageSelect {
-    background: #333;
-    color: #fff;
-    border: 1px solid #555;
-    border-radius: 5px;
-    font-size: 14px;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--clr-text);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    outline: none;
+}
+
+#languageSelect:focus {
+    border-color: var(--clr-accent);
+    box-shadow: 0 0 0 3px var(--clr-accent-glow);
 }
 
 /* Long Question Mark (Chapter Mode) */
@@ -1046,16 +1094,20 @@ input:checked+.slider:before {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(15, 25, 42, 0.92);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
     padding: 20px;
-    border-radius: 15px;
+    border-radius: var(--radius-md);
     z-index: 1001;
     display: none;
     flex-direction: column;
     width: 90vw;
-    max-height: 90vh;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
+    max-width: 600px;
+    max-height: 80vh;
+    border: 1px solid var(--clr-border);
+    box-shadow: var(--shadow-pop);
+    animation: modalIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .chapter-header {
@@ -1075,18 +1127,22 @@ input:checked+.slider:before {
 }
 
 .chapter-item {
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 5px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: background 0.3s;
+    transition: var(--transition-fast);
     display: flex;
     justify-content: space-between;
-    font-size: 2em;
+    align-items: center;
+    font-size: 1rem;
 }
 
 .chapter-item:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--clr-border);
+    transform: translateX(3px);
 }
 
 .chapter-time {
@@ -1303,4 +1359,461 @@ input:checked+.slider:before {
     box-shadow:
         0 10px 20px rgba(0, 0, 0, 0.5),
         0 0 60px rgba(255, 255, 255, 0.03);
+}
+
+/* =====================================================
+   QUEUE PANEL
+   ===================================================== */
+
+/* Queue toggle button — lives in desc-container row */
+.queue-toggle-btn {
+    background: var(--clr-glass);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 7px 10px;
+    cursor: pointer;
+    color: var(--clr-text);
+    transition: var(--transition-fast);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.queue-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.queue-toggle-btn.active {
+    background: var(--clr-accent);
+    border-color: var(--clr-accent);
+}
+
+/* Panel itself */
+.queue-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 340px;
+    max-width: 95vw;
+    height: 100vh;
+    background: rgba(13, 22, 40, 0.95);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border-left: 1px solid var(--clr-border);
+    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.5);
+    z-index: 1500;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.queue-panel.open {
+    transform: translateX(0);
+}
+
+.queue-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 18px 14px;
+    border-bottom: 1px solid var(--clr-border);
+    flex-shrink: 0;
+}
+
+.queue-title {
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.03em;
+    flex: 1;
+}
+
+.queue-count {
+    font-size: 0.78rem;
+    color: var(--clr-text-muted);
+    font-weight: 400;
+}
+
+.queue-close-btn {
+    background: none;
+    border: none;
+    color: var(--clr-text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.queue-close-btn:hover {
+    color: var(--clr-text);
+}
+
+.queue-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--clr-border) transparent;
+}
+
+.queue-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.queue-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.queue-list::-webkit-scrollbar-thumb {
+    background: var(--clr-border);
+    border-radius: 2px;
+}
+
+/* Individual queue item */
+.queue-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px 10px 6px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+    border: 1px solid transparent;
+    user-select: none;
+}
+
+.queue-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.queue-item.active {
+    background: rgba(66, 153, 225, 0.12);
+    border-color: rgba(66, 153, 225, 0.3);
+}
+
+.queue-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: var(--clr-accent);
+    border-radius: 0 2px 2px 0;
+}
+
+/* Drag-and-drop states */
+.queue-item.dragging {
+    opacity: 0.35;
+}
+
+.queue-item.drag-over {
+    border-color: var(--clr-accent);
+    background: rgba(66, 153, 225, 0.08);
+}
+
+.queue-drag-handle {
+    color: var(--clr-text-muted);
+    cursor: grab;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 4px 2px;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+}
+
+.queue-item:hover .queue-drag-handle {
+    opacity: 0.8;
+}
+
+.queue-drag-handle:active {
+    cursor: grabbing;
+}
+
+.queue-item-num {
+    font-size: 0.72rem;
+    color: var(--clr-text-muted);
+    width: 18px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.queue-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.queue-item-title {
+    font-size: 0.88rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--clr-text);
+}
+
+.queue-item.active .queue-item-title {
+    color: hsl(210, 100%, 75%);
+}
+
+.queue-item-subtitle {
+    font-size: 0.73rem;
+    color: var(--clr-text-muted);
+    margin-top: 2px;
+}
+
+.queue-item-duration {
+    font-size: 0.75rem;
+    color: var(--clr-text-muted);
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.queue-remove-btn {
+    background: none;
+    border: none;
+    color: var(--clr-text-muted);
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+    opacity: 0;
+}
+
+.queue-item:hover .queue-remove-btn {
+    opacity: 1;
+}
+
+.queue-remove-btn:hover {
+    color: hsl(0, 80%, 65%);
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.queue-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--clr-text-muted);
+    gap: 12px;
+    padding: 40px 20px;
+}
+
+.queue-empty p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Now Playing indicator pulse */
+@keyframes queuePulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.queue-playing-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--clr-accent);
+    flex-shrink: 0;
+    animation: queuePulse 1.4s ease-in-out infinite;
+}
+
+/* =====================================================
+   FFMPEG PROCESSING MODAL
+   ===================================================== */
+
+.ffmpeg-modal-content {
+    max-width: 520px;
+}
+
+.ffmpeg-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+}
+
+.ffmpeg-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--clr-text-muted);
+    padding: 8px 12px;
+    border-radius: calc(var(--radius-sm) - 2px);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: var(--transition-fast);
+}
+
+.ffmpeg-tab:hover {
+    color: var(--clr-text);
+}
+
+.ffmpeg-tab.active {
+    background: var(--clr-accent);
+    color: #fff;
+}
+
+.ffmpeg-tab-content {
+    display: none;
+}
+
+.ffmpeg-tab-content.active {
+    display: block;
+}
+
+.ffmpeg-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+    min-height: 80px;
+}
+
+.ffmpeg-meta-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+}
+
+.ffmpeg-meta-label {
+    font-size: 0.7rem;
+    color: var(--clr-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+
+.ffmpeg-meta-value {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--clr-text);
+}
+
+.ffmpeg-meta-loading {
+    grid-column: 1 / -1;
+    color: var(--clr-text-muted);
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
+}
+
+.ffmpeg-hint {
+    color: var(--clr-text-muted);
+    font-size: 0.88rem;
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+
+.ffmpeg-trim-inputs {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.ffmpeg-trim-inputs label {
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--clr-text-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ffmpeg-trim-inputs input {
+    /* reuse modal input styles, but smaller */
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    color: var(--clr-text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: var(--transition-fast);
+    margin-bottom: 0;
+    width: auto;
+}
+
+.ffmpeg-trim-inputs input:focus {
+    border-color: var(--clr-accent);
+    box-shadow: 0 0 0 3px var(--clr-accent-glow);
+}
+
+.ffmpeg-progress-area {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--clr-border);
+}
+
+.ffmpeg-progress-bar-wrap {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.ffmpeg-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--clr-accent), hsl(210, 90%, 70%));
+    border-radius: 3px;
+    transition: width 0.25s ease;
+}
+
+.ffmpeg-status {
+    font-size: 0.8rem;
+    color: var(--clr-text-muted);
+    text-align: center;
+    min-height: 1.2em;
+}
+
+.modal-btn.secondary {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--clr-border);
+    color: var(--clr-text-muted);
+}
+
+.modal-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--clr-text);
+    filter: none;
+    box-shadow: none;
+}
+
+/* Responsive: queue panel full-width on small screens */
+@media (max-width: 480px) {
+    .queue-panel {
+        width: 100vw;
+        border-left: none;
+    }
 }

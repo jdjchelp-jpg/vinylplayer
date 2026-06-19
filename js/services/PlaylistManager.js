@@ -84,6 +84,29 @@ export class PlaylistManager {
         return null;
     }
 
+    // Returns { wasPlaying: bool, nextIndex: int } so caller can decide what to play.
+    removeAt(index) {
+        if (index < 0 || index >= this.playlist.length) return null;
+
+        const track = this.playlist[index];
+        if (track.source && track.file) {
+            URL.revokeObjectURL(track.source);
+        }
+
+        this.playlist.splice(index, 1);
+
+        const wasPlaying = index === this.currentTrackIndex;
+        // Adjust currentTrackIndex after removal
+        if (index < this.currentTrackIndex) {
+            this.currentTrackIndex--;
+        } else if (wasPlaying) {
+            // Clamp to valid range
+            this.currentTrackIndex = Math.min(this.currentTrackIndex, this.playlist.length - 1);
+        }
+
+        return { wasPlaying, nextIndex: this.currentTrackIndex };
+    }
+
     clear() {
         // Revoke all
         this.playlist.forEach(track => {

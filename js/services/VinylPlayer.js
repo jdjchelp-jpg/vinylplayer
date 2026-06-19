@@ -71,7 +71,25 @@ export class VinylPlayer {
             installBtn: document.getElementById('installBtn'),
             exportVideoBtn: document.getElementById('exportVideoBtn'),
             renderModeToggle: document.getElementById('renderModeToggle'),
-            glassModeToggle: document.getElementById('glassModeToggle')
+            glassModeToggle: document.getElementById('glassModeToggle'),
+            // Queue panel
+            queuePanel: document.getElementById('queuePanel'),
+            queueList: document.getElementById('queueList'),
+            queueCount: document.getElementById('queueCount'),
+            queueEmpty: document.getElementById('queueEmpty'),
+            queueToggleBtn: document.getElementById('queueToggleBtn'),
+            queueCloseBtn: document.getElementById('queueCloseBtn'),
+            // FFmpeg modal
+            ffmpegModal: document.getElementById('ffmpegModal'),
+            ffmpegProgressArea: document.getElementById('ffmpegProgressArea'),
+            ffmpegProgressBar: document.getElementById('ffmpegProgressBar'),
+            ffmpegStatus: document.getElementById('ffmpegStatus'),
+            ffmpegMetaGrid: document.getElementById('ffmpegMetaGrid'),
+            ffmpegAnalyzeBtn: document.getElementById('ffmpegAnalyzeBtn'),
+            ffmpegConvertBtn: document.getElementById('ffmpegConvertBtn'),
+            ffmpegTrimBtn: document.getElementById('ffmpegTrimBtn'),
+            ffmpegTrimStart: document.getElementById('ffmpegTrimStart'),
+            ffmpegTrimEnd: document.getElementById('ffmpegTrimEnd')
         };
 
         this.deferredPrompt = null;
@@ -93,6 +111,9 @@ export class VinylPlayer {
             this.ffmpeg = null;
             this.exportEngine = null;
         }
+        this.currentFile = null; // track the active local File for FFmpeg operations
+        this.ffmpegLoaded = false;
+        this._dragSrcIndex = null;
         this.init();
     }
 
@@ -459,6 +480,14 @@ export class VinylPlayer {
             });
         }
 
+        const audioToolsBtn = document.getElementById('audioToolsBtn');
+        if (audioToolsBtn) {
+            audioToolsBtn.addEventListener('click', () => {
+                this.elements.menuItems.classList.remove('active');
+                this.showFfmpegModal();
+            });
+        }
+
         if (this.elements.renderModeToggle) {
             this.elements.renderModeToggle.addEventListener('change', () => {
                 this.updateSettings();
@@ -471,6 +500,49 @@ export class VinylPlayer {
                 this.setGlassMode(this.elements.glassModeToggle.checked);
             });
         }
+
+        // Queue panel toggle
+        if (this.elements.queueToggleBtn) {
+            this.elements.queueToggleBtn.addEventListener('click', () => this.toggleQueuePanel());
+        }
+        if (this.elements.queueCloseBtn) {
+            this.elements.queueCloseBtn.addEventListener('click', () => this.toggleQueuePanel(false));
+        }
+
+        // FFmpeg modal tabs
+        document.querySelectorAll('.ffmpeg-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.ffmpeg-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.ffmpeg-tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                const contentId = 'ffmpegTabContent' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1);
+                const content = document.getElementById(contentId);
+                if (content) content.classList.add('active');
+            });
+        });
+
+        // FFmpeg modal action buttons
+        if (this.elements.ffmpegAnalyzeBtn) {
+            this.elements.ffmpegAnalyzeBtn.addEventListener('click', () => this.ffmpegGetMetadata());
+        }
+        if (this.elements.ffmpegConvertBtn) {
+            this.elements.ffmpegConvertBtn.addEventListener('click', () => this.ffmpegConvertToMp3());
+        }
+        if (this.elements.ffmpegTrimBtn) {
+            this.elements.ffmpegTrimBtn.addEventListener('click', () => {
+                const start = parseFloat(this.elements.ffmpegTrimStart.value) || 0;
+                const end = parseFloat(this.elements.ffmpegTrimEnd.value) || 30;
+                this.ffmpegTrim(start, end);
+            });
+        }
+
+        // Close buttons for FFmpeg modal
+        ['ffmpegModalCloseBtn','ffmpegConvertCloseBtn','ffmpegTrimCloseBtn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', () => {
+                if (this.elements.ffmpegModal) this.elements.ffmpegModal.style.display = 'none';
+            });
+        });
     }
 
     handleFileUpload(files) {
@@ -491,6 +563,7 @@ export class VinylPlayer {
         }
 
         this.playlistManager.addTracks(newTracks);
+        this.renderQueue();
 
         // Auto play first track
         const firstTrack = this.playlistManager.getCurrentTrack();
@@ -593,6 +666,7 @@ export class VinylPlayer {
                     isVideo: true,
                     isLocal: false
                 });
+                this.renderQueue();
 
                 if (this.playlistManager.queue.length === 1 || !this.isPlaying) {
                     const lastIndex = this.playlistManager.queue.length - 1;
@@ -626,6 +700,7 @@ export class VinylPlayer {
         if (track.isLocal) {
             this.isLocalFile = true;
             this.isVideo = track.isVideo;
+            this.currentFile = track.file || null; // for FFmpeg operations
 
             this.youTubeService.pause(); // Pause JS player
 
@@ -645,6 +720,7 @@ export class VinylPlayer {
         } else {
             this.isLocalFile = false;
             this.isVideo = true;
+            this.currentFile = null;
             this.isPlaying = true; // Mark as playing so rotation/tonearm activate on state change
             this.localAudio.pause();
             this.localVideo.pause();
@@ -665,6 +741,8 @@ export class VinylPlayer {
 
             this.showNotification(translations[this.currentLang].playingTrack, "success");
         }
+
+        this.renderQueue(); // refresh active highlight
     }
 
     // Extracted chapter logic
@@ -1684,4 +1762,410 @@ export class VinylPlayer {
             track.source = '';
         }
     }
+
+    // ─────────────────────────────────────────────────
+    // QUEUE PANEL
+    // ─────────────────────────────────────────────────
+
+    toggleQueuePanel(forceState) {
+        const panel = this.elements.queuePanel;
+        const btn = this.elements.queueToggleBtn;
+        if (!panel) return;
+        const open = forceState !== undefined ? forceState : !panel.classList.contains('open');
+        panel.classList.toggle('open', open);
+        if (btn) btn.classList.toggle('active', open);
+        if (open) this.renderQueue();
+    }
+
+    /** Render (or re-render) the entire queue list. */
+    renderQueue() {
+        const list = this.elements.queueList;
+        const countEl = this.elements.queueCount;
+        const emptyEl = this.elements.queueEmpty;
+        if (!list) return;
+
+        const queue = this.playlistManager.queue;
+        const currentIdx = this.playlistManager.currentTrackIndex;
+
+        list.innerHTML = '';
+
+        if (countEl) {
+            countEl.textContent = `${queue.length} track${queue.length !== 1 ? 's' : ''}`;
+        }
+
+        if (queue.length === 0) {
+            if (emptyEl) emptyEl.style.display = 'flex';
+            return;
+        }
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        queue.forEach((track, idx) => {
+            const item = document.createElement('div');
+            item.className = 'queue-item' + (idx === currentIdx ? ' active' : '');
+            item.draggable = true;
+            item.dataset.index = idx;
+
+            const isYt = !track.isLocal;
+            const subtitle = isYt ? 'YouTube' : (track.isVideo ? 'Video' : 'Audio');
+
+            // ponytail: duration shown if media element has it for current track, else '—'
+            let duration = '—';
+            if (idx === currentIdx) {
+                const secs = this.isLocalFile
+                    ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration)
+                    : this.youTubeService.getDuration();
+                if (secs && !isNaN(secs)) duration = this.formatTime(secs);
+            }
+
+            item.innerHTML = `
+                <div class="queue-drag-handle" title="Drag to reorder">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="6" r="1.5" fill="currentColor"/>
+                        <circle cx="15" cy="6" r="1.5" fill="currentColor"/>
+                        <circle cx="9" cy="12" r="1.5" fill="currentColor"/>
+                        <circle cx="15" cy="12" r="1.5" fill="currentColor"/>
+                        <circle cx="9" cy="18" r="1.5" fill="currentColor"/>
+                        <circle cx="15" cy="18" r="1.5" fill="currentColor"/>
+                    </svg>
+                </div>
+                <span class="queue-item-num">${idx + 1}</span>
+                ${idx === currentIdx ? '<div class="queue-playing-dot"></div>' : ''}
+                <div class="queue-item-info">
+                    <div class="queue-item-title" title="${this._escHtml(track.title || 'Unknown')}">${this._escHtml(track.title || 'Unknown')}</div>
+                    <div class="queue-item-subtitle">${subtitle}</div>
+                </div>
+                <span class="queue-item-duration">${duration}</span>
+                <button class="queue-remove-btn" title="Remove from queue" aria-label="Remove">✕</button>
+            `;
+
+            // Click to play
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.queue-remove-btn') || e.target.closest('.queue-drag-handle')) return;
+                this.playlistManager.currentTrackIndex = idx;
+                this.playTrack(this.playlistManager.getCurrentTrack());
+            });
+
+            // Remove button
+            item.querySelector('.queue-remove-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeFromQueue(idx);
+            });
+
+            // Drag-and-drop reorder
+            this._wireQueueItemDrag(item, idx);
+
+            list.appendChild(item);
+        });
+    }
+
+    /** Drag-and-drop wiring for a single queue item. */
+    _wireQueueItemDrag(item, idx) {
+        item.addEventListener('dragstart', (e) => {
+            this._dragSrcIndex = idx;
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', idx);
+        });
+
+        item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+            document.querySelectorAll('.queue-item').forEach(i => i.classList.remove('drag-over'));
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            document.querySelectorAll('.queue-item').forEach(i => i.classList.remove('drag-over'));
+            item.classList.add('drag-over');
+        });
+
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const from = this._dragSrcIndex;
+            const to = idx;
+            if (from === null || from === to) return;
+
+            // Reorder in the playlist
+            const pl = this.playlistManager.playlist;
+            const [moved] = pl.splice(from, 1);
+            pl.splice(to, 0, moved);
+
+            // Fix currentTrackIndex after reorder
+            const ci = this.playlistManager.currentTrackIndex;
+            if (ci === from) {
+                this.playlistManager.currentTrackIndex = to;
+            } else if (from < ci && to >= ci) {
+                this.playlistManager.currentTrackIndex--;
+            } else if (from > ci && to <= ci) {
+                this.playlistManager.currentTrackIndex++;
+            }
+
+            this._dragSrcIndex = null;
+            this.renderQueue();
+        });
+    }
+
+    /** Remove a track at the given queue index. */
+    removeFromQueue(index) {
+        const result = this.playlistManager.removeAt(index);
+        if (!result) return;
+
+        if (this.playlistManager.queue.length === 0) {
+            // Queue empty — stop playback
+            this.localAudio.pause();
+            this.localVideo.pause();
+            this.isPlaying = false;
+            this.stopRotation();
+            this.moveToneArmOffRecord();
+            this.updatePlayButtonIcon(false);
+            this.renderQueue();
+            return;
+        }
+
+        if (result.wasPlaying) {
+            const next = this.playlistManager.getCurrentTrack();
+            if (next) {
+                this.playTrack(next);
+            }
+        } else {
+            this.renderQueue();
+        }
+    }
+
+    // ─────────────────────────────────────────────────
+    // FFMPEG PROCESSING MODAL
+    // ─────────────────────────────────────────────────
+
+    showFfmpegModal() {
+        if (!this.currentFile) {
+            this.showNotification('Load a local audio file first.', 'error');
+            return;
+        }
+        if (this.elements.ffmpegModal) {
+            this.elements.ffmpegModal.style.display = 'flex';
+        }
+        // Reset progress area
+        this._ffmpegHideProgress();
+    }
+
+    _ffmpegShowProgress(msg = 'Processing...') {
+        const area = this.elements.ffmpegProgressArea;
+        if (area) area.style.display = 'block';
+        this._ffmpegSetStatus(msg);
+        this._ffmpegSetProgress(0);
+    }
+
+    _ffmpegHideProgress() {
+        const area = this.elements.ffmpegProgressArea;
+        if (area) area.style.display = 'none';
+    }
+
+    _ffmpegSetStatus(msg) {
+        if (this.elements.ffmpegStatus) this.elements.ffmpegStatus.textContent = msg;
+    }
+
+    _ffmpegSetProgress(pct) {
+        if (this.elements.ffmpegProgressBar) this.elements.ffmpegProgressBar.style.width = `${pct}%`;
+    }
+
+    /** Ensure ffmpeg.load() has been called. Shows progress while loading. */
+    async _ffmpegEnsureLoaded() {
+        if (this.ffmpegLoaded) return;
+        if (!this.ffmpeg) {
+            const ffmpegLib = (typeof FFmpegWASM !== 'undefined') ? FFmpegWASM : (window.FFmpegWASM || null);
+            if (!ffmpegLib || !ffmpegLib.FFmpeg) throw new Error('FFmpegWASM not available');
+            this.ffmpeg = new ffmpegLib.FFmpeg();
+        }
+
+        this._ffmpegSetStatus('Loading FFmpeg core...');
+        this._ffmpegSetProgress(5);
+
+        // Progress from CDN download
+        this.ffmpeg.on('progress', ({ progress }) => {
+            this._ffmpegSetProgress(Math.round(progress * 100));
+        });
+
+        await this.ffmpeg.load({
+            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+        });
+
+        this.ffmpegLoaded = true;
+        this._ffmpegSetProgress(100);
+        this._ffmpegSetStatus('FFmpeg ready.');
+    }
+
+    /** Trigger a browser download of a Uint8Array. */
+    _ffmpegDownload(data, filename) {
+        const blob = new Blob([data.buffer]);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    /** Extract metadata (duration, bitrate, codec) from current file. */
+    async ffmpegGetMetadata() {
+        const file = this.currentFile;
+        if (!file) { this.showNotification('No local file loaded.', 'error'); return; }
+
+        const grid = this.elements.ffmpegMetaGrid;
+        if (grid) grid.innerHTML = '<div class="ffmpeg-meta-loading">Analyzing...</div>';
+
+        this._ffmpegShowProgress('Analyzing file...');
+
+        try {
+            await this._ffmpegEnsureLoaded();
+
+            const inputName = 'meta_input' + file.name.replace(/[^a-z0-9.]/gi, '_');
+            const { fetchFile } = FFmpegUtil;
+
+            this._ffmpegSetStatus('Reading file...');
+            this._ffmpegSetProgress(20);
+            await this.ffmpeg.writeFile(inputName, await fetchFile(file));
+
+            // Collect log output
+            let log = '';
+            const logHandler = ({ message }) => { log += message + '\n'; };
+            this.ffmpeg.on('log', logHandler);
+
+            this._ffmpegSetStatus('Running analysis...');
+            this._ffmpegSetProgress(50);
+            try { await this.ffmpeg.exec(['-i', inputName]); } catch (_) { /* ffmpeg exits 1 on info-only runs */ }
+
+            this.ffmpeg.off('log', logHandler);
+            await this.ffmpeg.deleteFile(inputName).catch(() => {});
+
+            // Parse log
+            const durationMatch = /Duration:\s*([\d:\.]+)/.exec(log);
+            const bitrateMatch = /bitrate:\s*(\d+\s*kb\/s)/.exec(log);
+            const audioMatch = /Audio:\s*([^\s,]+).*?(\d+ Hz).*?(\d+ kb\/s)?/.exec(log);
+            const videoMatch = /Video:\s*([^\s,]+)/.exec(log);
+
+            const meta = {
+                Duration: durationMatch ? durationMatch[1] : '—',
+                Bitrate: bitrateMatch ? bitrateMatch[1] : '—',
+                'Audio Codec': audioMatch ? audioMatch[1] : '—',
+                'Sample Rate': audioMatch ? audioMatch[2] : '—',
+                'Video Codec': videoMatch ? videoMatch[1] : 'None',
+                'File Size': (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+            };
+
+            if (grid) {
+                grid.innerHTML = Object.entries(meta).map(([k, v]) => `
+                    <div class="ffmpeg-meta-item">
+                        <div class="ffmpeg-meta-label">${k}</div>
+                        <div class="ffmpeg-meta-value">${v}</div>
+                    </div>`).join('');
+            }
+
+            this._ffmpegSetProgress(100);
+            this._ffmpegSetStatus('Analysis complete.');
+        } catch (err) {
+            console.error('FFmpeg metadata error:', err);
+            if (grid) grid.innerHTML = `<div class="ffmpeg-meta-loading" style="color:hsl(0,70%,65%)">${err.message}</div>`;
+            this._ffmpegSetStatus('Error: ' + err.message);
+        }
+    }
+
+    /** Convert current local file to MP3 (192kbps) and trigger download. */
+    async ffmpegConvertToMp3() {
+        const file = this.currentFile;
+        if (!file) { this.showNotification('No local file loaded.', 'error'); return; }
+
+        this._ffmpegShowProgress('Preparing conversion...');
+
+        try {
+            await this._ffmpegEnsureLoaded();
+            const { fetchFile } = FFmpegUtil;
+
+            const inputName = 'conv_in' + file.name.replace(/[^a-z0-9.]/gi, '_');
+            const outputName = file.name.replace(/\.[^.]+$/, '') + '_converted.mp3';
+
+            this._ffmpegSetStatus('Writing file to memory...');
+            this._ffmpegSetProgress(15);
+            await this.ffmpeg.writeFile(inputName, await fetchFile(file));
+
+            this._ffmpegSetStatus('Converting to MP3...');
+            this.ffmpeg.on('progress', ({ progress }) => {
+                this._ffmpegSetProgress(15 + Math.round(progress * 75));
+            });
+
+            await this.ffmpeg.exec(['-i', inputName, '-acodec', 'libmp3lame', '-b:a', '192k', outputName]);
+
+            this._ffmpegSetStatus('Reading output...');
+            this._ffmpegSetProgress(92);
+            const data = await this.ffmpeg.readFile(outputName);
+            await Promise.all([
+                this.ffmpeg.deleteFile(inputName).catch(() => {}),
+                this.ffmpeg.deleteFile(outputName).catch(() => {}),
+            ]);
+
+            this._ffmpegSetProgress(100);
+            this._ffmpegSetStatus('Done! Downloading...');
+            this._ffmpegDownload(data, outputName);
+        } catch (err) {
+            console.error('FFmpeg convert error:', err);
+            this._ffmpegSetStatus('Error: ' + err.message);
+            this.showNotification('Conversion failed: ' + err.message, 'error');
+        }
+    }
+
+    /** Trim current local file by start/end seconds and download. */
+    async ffmpegTrim(startSec, endSec) {
+        const file = this.currentFile;
+        if (!file) { this.showNotification('No local file loaded.', 'error'); return; }
+        if (endSec <= startSec) { this.showNotification('End time must be after start time.', 'error'); return; }
+
+        this._ffmpegShowProgress('Preparing trim...');
+
+        try {
+            await this._ffmpegEnsureLoaded();
+            const { fetchFile } = FFmpegUtil;
+
+            const ext = (file.name.match(/\.[^.]+$/) || ['.mp3'])[0];
+            const inputName = 'trim_in' + file.name.replace(/[^a-z0-9.]/gi, '_');
+            const outputName = file.name.replace(/\.[^.]+$/, '') + `_trim_${startSec}-${endSec}${ext}`;
+
+            this._ffmpegSetStatus('Writing file to memory...');
+            this._ffmpegSetProgress(15);
+            await this.ffmpeg.writeFile(inputName, await fetchFile(file));
+
+            this._ffmpegSetStatus(`Trimming ${this.formatTime(startSec)} → ${this.formatTime(endSec)}...`);
+            this.ffmpeg.on('progress', ({ progress }) => {
+                this._ffmpegSetProgress(15 + Math.round(progress * 75));
+            });
+
+            await this.ffmpeg.exec([
+                '-ss', String(startSec),
+                '-to', String(endSec),
+                '-i', inputName,
+                '-c', 'copy',
+                outputName
+            ]);
+
+            this._ffmpegSetProgress(92);
+            this._ffmpegSetStatus('Reading output...');
+            const data = await this.ffmpeg.readFile(outputName);
+            await Promise.all([
+                this.ffmpeg.deleteFile(inputName).catch(() => {}),
+                this.ffmpeg.deleteFile(outputName).catch(() => {}),
+            ]);
+
+            this._ffmpegSetProgress(100);
+            this._ffmpegSetStatus('Done! Downloading...');
+            this._ffmpegDownload(data, outputName);
+        } catch (err) {
+            console.error('FFmpeg trim error:', err);
+            this._ffmpegSetStatus('Error: ' + err.message);
+            this.showNotification('Trim failed: ' + err.message, 'error');
+        }
+    }
+
+    /** HTML-escape helper to avoid XSS in queue titles. */
+    _escHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 }
+

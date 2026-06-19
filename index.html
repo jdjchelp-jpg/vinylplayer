@@ -126,6 +126,16 @@
                 </svg>
                 <span>Settings</span>
             </button>
+            <button class="menu-item" id="audioToolsBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+                <span>Audio Tools (FFmpeg)</span>
+            </button>
         </div>
     </div>
 
@@ -198,10 +208,43 @@
                 <circle cx="18" cy="16" r="3"></circle>
             </svg>
         </button>
+        <!-- Queue toggle button -->
+        <button class="queue-toggle-btn" id="queueToggleBtn" title="Show Queue">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+        </button>
         <div class="desc-items">
             <label class="desc-item">
 
             </label>
+        </div>
+    </div>
+
+    <!-- Queue Panel -->
+    <div class="queue-panel" id="queuePanel">
+        <div class="queue-header">
+            <span class="queue-title">Up Next</span>
+            <span class="queue-count" id="queueCount">0 tracks</span>
+            <button class="queue-close-btn" id="queueCloseBtn">&times;</button>
+        </div>
+        <div class="queue-list" id="queueList">
+            <!-- Items injected by JS -->
+        </div>
+        <div class="queue-empty" id="queueEmpty" style="display:none;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="40" height="40" fill="none"
+                stroke="currentColor" stroke-width="1.5">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+            <p>Queue is empty</p>
         </div>
     </div>
 
@@ -341,6 +384,65 @@
     <div class="clock-container" style="display:none;">
         <div id="clock">
 
+        </div>
+    </div>
+
+    <!-- FFmpeg Processing Modal -->
+    <div class="modal" id="ffmpegModal">
+        <div class="modal-content ffmpeg-modal-content">
+            <h2>&#127911; Audio Processing</h2>
+
+            <!-- Tab bar -->
+            <div class="ffmpeg-tabs">
+                <button class="ffmpeg-tab active" data-tab="metadata" id="ffmpegTabMeta">Metadata</button>
+                <button class="ffmpeg-tab" data-tab="convert" id="ffmpegTabConvert">Convert to MP3</button>
+                <button class="ffmpeg-tab" data-tab="trim" id="ffmpegTabTrim">Trim</button>
+            </div>
+
+            <!-- Metadata tab -->
+            <div class="ffmpeg-tab-content active" id="ffmpegTabContentMeta">
+                <div class="ffmpeg-meta-grid" id="ffmpegMetaGrid">
+                    <div class="ffmpeg-meta-loading">Click "Analyze" to extract metadata</div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn" id="ffmpegAnalyzeBtn">Analyze File</button>
+                    <button class="modal-btn secondary" id="ffmpegModalCloseBtn">Close</button>
+                </div>
+            </div>
+
+            <!-- Convert tab -->
+            <div class="ffmpeg-tab-content" id="ffmpegTabContentConvert">
+                <p class="ffmpeg-hint">Converts the current local audio file to MP3 (192kbps).</p>
+                <div class="modal-buttons">
+                    <button class="modal-btn" id="ffmpegConvertBtn">Convert &amp; Download</button>
+                    <button class="modal-btn secondary" id="ffmpegConvertCloseBtn">Close</button>
+                </div>
+            </div>
+
+            <!-- Trim tab -->
+            <div class="ffmpeg-tab-content" id="ffmpegTabContentTrim">
+                <p class="ffmpeg-hint">Trim the audio to a time range and download.</p>
+                <div class="ffmpeg-trim-inputs">
+                    <label>Start (seconds)
+                        <input type="number" id="ffmpegTrimStart" min="0" value="0" step="0.1">
+                    </label>
+                    <label>End (seconds)
+                        <input type="number" id="ffmpegTrimEnd" min="0" value="30" step="0.1">
+                    </label>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-btn" id="ffmpegTrimBtn">Trim &amp; Download</button>
+                    <button class="modal-btn secondary" id="ffmpegTrimCloseBtn">Close</button>
+                </div>
+            </div>
+
+            <!-- Shared progress area -->
+            <div class="ffmpeg-progress-area" id="ffmpegProgressArea" style="display:none;">
+                <div class="ffmpeg-progress-bar-wrap">
+                    <div class="ffmpeg-progress-bar" id="ffmpegProgressBar"></div>
+                </div>
+                <div class="ffmpeg-status" id="ffmpegStatus">Loading FFmpeg...</div>
+            </div>
         </div>
     </div>
 
