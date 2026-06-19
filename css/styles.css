@@ -1034,22 +1034,20 @@ input:checked+.slider:before {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    justify-content: flex-start !important;
     gap: 12px !important;
-    
-    /* Disconnect it from the slider handle flow */
     position: absolute !important;
-    left: 380px;
-    top: 55%;
-    transform: translateY(-50%);
+    white-space: nowrap !important;
+    z-index: 999 !important;
+
+    /* Positions the row perfectly in the top-left area */
+    left: 20px !important;   
+    top: 80px !important;    /* Placed just below the hamburger menu button */
+    transform: none !important; 
     
     width: auto !important;
     height: auto !important;
-    white-space: nowrap !important;
-    z-index: 999 !important;
 }
 
-/* Force all three child items to be identical, un-squishable squares */
 .desc-container > * {
     flex-shrink: 0 !important;
     display: inline-flex !important;
