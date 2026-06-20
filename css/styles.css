@@ -148,16 +148,16 @@ input[type="file"] {
 }
 
 .vinyl-cover {
-    width: 65%;
-    height: 65%;
+    width: 100%;
+    height: 100%;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    border-radius: 0%;
-    background-size: contain !important;
+    transform: translate(-50%, -50%) scale(0.95);
+    border-radius: 50%;
+    overflow: hidden;
+    background-size: cover !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
-    padding: 12px;
     box-sizing: border-box;
     position: absolute;
     animation: rotate 8s linear infinite;
@@ -172,11 +172,11 @@ input[type="file"] {
 
 @keyframes rotate {
     from {
-        transform: translate(-50%, -50%) rotate(0deg);
+        transform: translate(-50%, -50%) scale(0.95) rotate(0deg);
     }
 
     to {
-        transform: translate(-50%, -50%) rotate(360deg);
+        transform: translate(-50%, -50%) scale(0.95) rotate(360deg);
     }
 }
 

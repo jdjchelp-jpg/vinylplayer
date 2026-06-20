@@ -457,7 +457,8 @@ export class VinylPlayer {
             });
         }
 
-        // YouTube Consent Modal
+        // YouTube Consent Modal
+
         this._pendingConsentTrack = null;
         const consentAcceptBtn = document.getElementById('consentAcceptBtn');
         const consentPrivacyBtn = document.getElementById('consentPrivacyBtn');
@@ -621,7 +622,7 @@ export class VinylPlayer {
         }
 
         // Close buttons for FFmpeg modal
-        ['ffmpegModalCloseBtn','ffmpegConvertCloseBtn','ffmpegTrimCloseBtn'].forEach(id => {
+        ['ffmpegModalCloseBtn', 'ffmpegConvertCloseBtn', 'ffmpegTrimCloseBtn'].forEach(id => {
             const btn = document.getElementById(id);
             if (btn) btn.addEventListener('click', () => {
                 if (this.elements.ffmpegModal) this.elements.ffmpegModal.style.display = 'none';
@@ -1228,7 +1229,7 @@ export class VinylPlayer {
 
         const title = metadata?.title || this.elements.textTitle.textContent || 'Unknown Title';
         const artist = metadata?.author || metadata?.artist || this.elements.textAuthor.textContent || 'Unknown Artist';
-        
+
         let cover = 'images/favicon.png';
         if (metadata?.cover) {
             cover = metadata.cover;
@@ -2263,7 +2264,7 @@ export class VinylPlayer {
             try { await this.ffmpeg.exec(['-i', inputName]); } catch (_) { /* ffmpeg exits 1 on info-only runs */ }
 
             this.ffmpeg.off('log', logHandler);
-            await this.ffmpeg.deleteFile(inputName).catch(() => {});
+            await this.ffmpeg.deleteFile(inputName).catch(() => { });
 
             // Parse log
             const durationMatch = /Duration:\s*([\d:\.]+)/.exec(log);
@@ -2326,8 +2327,8 @@ export class VinylPlayer {
             this._ffmpegSetProgress(92);
             const data = await this.ffmpeg.readFile(outputName);
             await Promise.all([
-                this.ffmpeg.deleteFile(inputName).catch(() => {}),
-                this.ffmpeg.deleteFile(outputName).catch(() => {}),
+                this.ffmpeg.deleteFile(inputName).catch(() => { }),
+                this.ffmpeg.deleteFile(outputName).catch(() => { }),
             ]);
 
             this._ffmpegSetProgress(100);
@@ -2377,8 +2378,8 @@ export class VinylPlayer {
             this._ffmpegSetStatus('Reading output...');
             const data = await this.ffmpeg.readFile(outputName);
             await Promise.all([
-                this.ffmpeg.deleteFile(inputName).catch(() => {}),
-                this.ffmpeg.deleteFile(outputName).catch(() => {}),
+                this.ffmpeg.deleteFile(inputName).catch(() => { }),
+                this.ffmpeg.deleteFile(outputName).catch(() => { }),
             ]);
 
             this._ffmpegSetProgress(100);
@@ -2393,7 +2394,7 @@ export class VinylPlayer {
 
     /** HTML-escape helper to avoid XSS in queue titles. */
     _escHtml(str) {
-        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 }
 

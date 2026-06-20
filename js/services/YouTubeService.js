@@ -184,7 +184,9 @@ export class YouTubeService {
                         modestbranding: 1,
                         playsinline: 1,
                         autoplay: 1,
-                        origin: window.location.origin.replace(/\/$/, '')
+                        origin: window.location.origin.replace(/\/$/, ''),
+                        widget_referrer: window.location.href.replace(/\/$/, ''),
+                        rel: 0
                     },
                     events: {
                         onReady: async (event) => {
