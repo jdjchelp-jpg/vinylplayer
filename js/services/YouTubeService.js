@@ -178,14 +178,13 @@ export class YouTubeService {
                     videoId: videoId,
                     height: '360',
                     width: '360',
-                    host: 'https://www.youtube-nocookie.com',
                     playerVars: {
                         enablejsapi: 1,
                         controls: 0,
                         modestbranding: 1,
                         playsinline: 1,
                         autoplay: 1,
-                        origin: window.location.origin
+                        origin: window.location.origin.replace(/\/$/, '')
                     },
                     events: {
                         onReady: async (event) => {
