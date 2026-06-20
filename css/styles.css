@@ -1030,6 +1030,7 @@ input:checked+.slider:before {
     background: rgba(255, 255, 255, 0.1);
 }
 
+/* Keep the top-right button group strictly horizontal */
 .desc-container {
     display: flex !important;
     flex-direction: row !important;
@@ -1039,27 +1040,19 @@ input:checked+.slider:before {
     white-space: nowrap !important;
     z-index: 999 !important;
 
-    /* Positions the row perfectly in the top-right area */
-    right: 20px !important;  /* Anchors it to the right edge instead of left */
-    top: 40px !important;    /* Keeps it aligned near the top edge */
-    left: auto !important;   /* Overrides any previous left positioning */
+    right: 30px !important;  
+    top: 30px !important;    
+    left: auto !important;   
     transform: none !important; 
     
     width: auto !important;
     height: auto !important;
 }
 
-.desc-container > * {
+/* Ensure individual buttons stay neat and un-squished */
+.desc-container > button,
+.desc-container > div {
     flex-shrink: 0 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin: 0 !important;
-}
-
-/* Option 2: Hide only when it has no text */
-.desc-container:empty {
-    display: none !important;
 }
 
 /* Lyrics Modal */
