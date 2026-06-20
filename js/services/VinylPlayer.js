@@ -25,6 +25,7 @@ export class VinylPlayer {
         this.isVideo = false;
         this.holidayManager = new HolidayManager();
         this.chapters = []; // Store chapters
+        this.currentChapterIndex = 0; // Current chapter index for audiobooks
         this.currentExportTrack = null; // For export cleanup
 
         this.elements = {
@@ -89,7 +90,10 @@ export class VinylPlayer {
             ffmpegConvertBtn: document.getElementById('ffmpegConvertBtn'),
             ffmpegTrimBtn: document.getElementById('ffmpegTrimBtn'),
             ffmpegTrimStart: document.getElementById('ffmpegTrimStart'),
-            ffmpegTrimEnd: document.getElementById('ffmpegTrimEnd')
+            ffmpegTrimEnd: document.getElementById('ffmpegTrimEnd'),
+            // Chapter pill
+            chapterPill: document.getElementById('chapterPill'),
+            chapterPillText: document.getElementById('chapterPillText')
         };
 
         this.deferredPrompt = null;
@@ -214,6 +218,19 @@ export class VinylPlayer {
         const capsule = document.querySelector('.song-info-capsule');
         if (capsule) {
             capsule.style.display = title ? 'inline-flex' : 'none';
+        }
+    }
+
+    // Show/hide and update the chapter pill text
+    updateChapterPill(text) {
+        const pill = this.elements.chapterPill;
+        const pillText = this.elements.chapterPillText;
+        if (!pill || !pillText) return;
+        if (text) {
+            pillText.textContent = text;
+            pill.style.display = 'inline-flex';
+        } else {
+            pill.style.display = 'none';
         }
     }
 
@@ -704,6 +721,9 @@ export class VinylPlayer {
     playTrack(track) {
         if (!track) return;
 
+        // Reset chapter pill for every new track
+        this.updateChapterPill(null);
+
         // If track is an ID string (legacy call), convert to minimal object
         if (typeof track === 'string') {
             track = { id: track, isLocal: false, isVideo: true };
@@ -775,12 +795,22 @@ export class VinylPlayer {
     // Extracted chapter logic
     loadChapters(track) {
         this.chapters = [];
+        // Detect .m4b audiobook and show chapter pill immediately at Chapter 1
+        const isM4b = track.file && track.file.name && track.file.name.toLowerCase().endsWith('.m4b');
+        if (isM4b) {
+            this.updateChapterPill('Chapter 1');
+        } else {
+            this.updateChapterPill(null);
+        }
         if (track.file) {
             this.extractChapters(track.file)
                 .then(chapters => {
                     this.chapters = chapters;
                     if (this.chapters.length > 0) {
                         console.log(`Found ${this.chapters.length} chapters`);
+                        // Update chapter pill with first chapter title
+                        this.currentChapterIndex = 0;
+                        this.updateChapterPill(this.chapters[0].title || 'Chapter 1');
                     }
                 })
                 .catch(err => console.error(err));
@@ -1470,6 +1500,8 @@ export class VinylPlayer {
                 }
                 this.elements.chapterMenu.style.display = 'none';
                 this.elements.descToggle.setAttribute('data-chapter', chapter.title);
+                this.currentChapterIndex = chapter.index - 1;
+                this.updateChapterPill(chapter.title);
             });
             this.elements.chapterList.appendChild(div);
         });

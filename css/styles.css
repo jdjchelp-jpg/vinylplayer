@@ -156,12 +156,13 @@ input[type="file"] {
     background-size: contain !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
-    padding: 8px;
+    padding: 12px;
     box-sizing: border-box;
     position: absolute;
     animation: rotate 8s linear infinite;
     animation-play-state: paused;
     -webkit-user-drag: none;
+    will-change: transform;
 }
 
 .vinyl-cover.playing {
@@ -1887,6 +1888,29 @@ input:checked+.slider:before {
 }
 
 
+
+/* Chapter pill — mirrors song-info-capsule styling */
+.chapter-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 38px !important;
+    padding: 0 16px !important;
+    border-radius: 19px !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    flex-shrink: 0 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.chapter-pill-text {
+    color: rgba(255, 255, 255, 0.75) !important;
+    font-size: 13px !important;
+    font-family: system-ui, -apple-system, sans-serif !important;
+    letter-spacing: 0.3px !important;
+    white-space: nowrap !important;
+}
 
 /* The text element inside the pill */
 .song-title-text {
