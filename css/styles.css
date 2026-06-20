@@ -148,11 +148,12 @@ input[type="file"] {
 }
 
 .vinyl-cover {
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    border-radius: 50%;
+    width: 65%;
+    height: 65%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 0%;
     background-size: contain !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
@@ -171,11 +172,11 @@ input[type="file"] {
 
 @keyframes rotate {
     from {
-        transform: rotate(0deg);
+        transform: translate(-50%, -50%) rotate(0deg);
     }
 
     to {
-        transform: rotate(360deg);
+        transform: translate(-50%, -50%) rotate(360deg);
     }
 }
 
@@ -767,16 +768,16 @@ input[type="file"] {
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
     background: rgba(13, 22, 40, 0.82);
     border: 1px solid var(--clr-border);
-    padding: 10px 20px;
+    padding: 10px 16px;
     border-radius: var(--radius-pill);
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
     box-shadow: var(--shadow-pop);
     color: var(--clr-text);
-    width: 400px;
+    width: 440px;
     z-index: 100;
 }
 
@@ -845,6 +846,103 @@ input[type="file"] {
     font-family: monospace;
     min-width: 40px;
     text-align: center;
+}
+
+/* Speed Select */
+.speed-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    color: var(--clr-text);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition-fast);
+    min-width: 52px;
+    text-align: center;
+}
+
+.speed-select:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: var(--clr-accent);
+}
+
+.speed-select:focus {
+    border-color: var(--clr-accent);
+    box-shadow: 0 0 0 3px var(--clr-accent-glow);
+}
+
+.speed-select option {
+    background: #1b263b;
+    color: var(--clr-text);
+}
+
+/* Glass mode speed select */
+.glass-mode .speed-select {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.glass-mode .speed-select:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Consent Modal Styles */
+.consent-message {
+    color: var(--clr-text-muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin: 0 0 20px;
+    text-align: center;
+}
+
+.consent-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.consent-btn-full {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--clr-accent);
+    color: white;
+}
+
+.consent-btn-full:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 4px 16px var(--clr-accent-glow);
+}
+
+.consent-btn-privacy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #93c5fd;
+}
+
+.consent-btn-privacy:hover {
+    background: rgba(59, 130, 246, 0.35);
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+}
+
+/* Glass mode consent buttons */
+.glass-mode .consent-btn-privacy {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.glass-mode .consent-btn-privacy:hover {
+    background: rgba(59, 130, 246, 0.2);
 }
 
 /* Settings Modal Styles */

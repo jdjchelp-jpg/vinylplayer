@@ -178,6 +178,7 @@ export class YouTubeService {
                     videoId: videoId,
                     height: '360',
                     width: '360',
+                    host: 'https://www.youtube-nocookie.com',
                     playerVars: {
                         enablejsapi: 1,
                         controls: 0,
@@ -278,6 +279,80 @@ export class YouTubeService {
     setVolume(volume) {
         if (this.player && this.playerReady) {
             this.player.setVolume(volume);
+        }
+    }
+
+    /**
+     * Fetch audio stream URL from an Invidious instance.
+     * Returns the best available audio-only stream URL for the given videoId.
+     */
+    async getInvidiousAudioUrl(videoId) {
+        const instances = [
+            'https://vid.puffyan.us',
+            'https://invidious.snopyta.org',
+            'https://invidious.namazso.eu',
+            'https://yt.artemislena.eu',
+            'https://inv.bp.projectsegfau.lt',
+            'https://invidious.privacyredirect.com',
+            'https://inv.nadeko.net'
+        ];
+
+        for (const instance of instances) {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 5000);
+                const response = await fetch(`${instance}/api/v1/videos/${videoId}`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeout);
+
+                if (!response.ok) continue;
+                const data = await response.json();
+
+                // Find adaptive audio-only formats
+                const audioFormats = (data.adaptiveFormats || []).filter(
+                    f => f.type && f.type.startsWith('audio/') && f.url
+                );
+
+                if (audioFormats.length > 0) {
+                    // Prefer opus or aac, then fallback to any audio
+                    const preferred = audioFormats.find(f => f.type.includes('opus'))
+                        || audioFormats.find(f => f.type.includes('mp4a'))
+                        || audioFormats[0];
+                    console.log(`[Privacy Audio] Stream found via ${instance}`);
+                    return preferred.url;
+                }
+            } catch (err) {
+                console.warn(`[Privacy Audio] Instance ${instance} failed:`, err.message);
+                continue;
+            }
+        }
+
+        throw new Error('All Invidious instances failed. Please try the video stream option.');
+    }
+
+    /**
+     * Play a raw audio URL through the local HTML5 audio element.
+     * Used by the privacy audio fallback to bypass YouTube iframe entirely.
+     */
+    async playAudioFallback(videoId, onReady, onStateChange) {
+        console.log('[Privacy Audio] Fetching audio stream for:', videoId);
+
+        try {
+            const audioUrl = await this.getInvidiousAudioUrl(videoId);
+
+            // Get video metadata via oembed
+            const details = await this.getVideoDetails(videoId).catch(() => null);
+            const videoData = {
+                title: details?.title || 'YouTube Video',
+                author: details?.author || 'Unknown Artist'
+            };
+
+            // Return the audio URL and metadata so VinylPlayer can handle playback
+            return { audioUrl, videoData };
+        } catch (error) {
+            console.error('[Privacy Audio] Fallback failed:', error);
+            throw error;
         }
     }
 }

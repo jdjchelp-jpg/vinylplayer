@@ -93,7 +93,9 @@ export class VinylPlayer {
             ffmpegTrimEnd: document.getElementById('ffmpegTrimEnd'),
             // Chapter pill
             chapterPill: document.getElementById('chapterPill'),
-            chapterPillText: document.getElementById('chapterPillText')
+            chapterPillText: document.getElementById('chapterPillText'),
+            // Playback speed
+            speedSelect: document.getElementById('speedSelect')
         };
 
         this.deferredPrompt = null;
@@ -155,6 +157,14 @@ export class VinylPlayer {
 
         // Always play when the player becomes ready (playTrack was called intentionally)
         this.youTubeService.play();
+
+        // Re-apply current playback speed (YouTube needs it after player ready)
+        if (this.elements.speedSelect) {
+            const speed = parseFloat(this.elements.speedSelect.value);
+            if (speed !== 1 && this.youTubeService.player && this.youTubeService.player.setPlaybackRate) {
+                this.youTubeService.player.setPlaybackRate(speed);
+            }
+        }
 
         // Update info if available from ready event
         if (videoData) {
@@ -437,6 +447,49 @@ export class VinylPlayer {
             this.elements.fileInput.addEventListener('change', (e) => {
                 this.handleFileUpload(e.target.files);
                 this.elements.menuItems.classList.remove('active');
+            });
+        }
+
+        // Playback Speed
+        if (this.elements.speedSelect) {
+            this.elements.speedSelect.addEventListener('change', (e) => {
+                this.setPlaybackSpeed(parseFloat(e.target.value));
+            });
+        }
+
+        // YouTube Consent Modal
+        this._pendingConsentTrack = null;
+        const consentAcceptBtn = document.getElementById('consentAcceptBtn');
+        const consentPrivacyBtn = document.getElementById('consentPrivacyBtn');
+        const consentCancelBtn = document.getElementById('consentCancelBtn');
+        const youtubeConsentModal = document.getElementById('youtubeConsentModal');
+
+        if (consentAcceptBtn) {
+            consentAcceptBtn.addEventListener('click', () => {
+                localStorage.setItem('ytConsentMode', 'video');
+                youtubeConsentModal.style.display = 'none';
+                if (this._pendingConsentTrack) {
+                    this._launchYouTubePlayer(this._pendingConsentTrack);
+                    this._pendingConsentTrack = null;
+                }
+            });
+        }
+
+        if (consentPrivacyBtn) {
+            consentPrivacyBtn.addEventListener('click', async () => {
+                localStorage.setItem('ytConsentMode', 'privacy');
+                youtubeConsentModal.style.display = 'none';
+                if (this._pendingConsentTrack) {
+                    await this._launchPrivacyAudio(this._pendingConsentTrack);
+                    this._pendingConsentTrack = null;
+                }
+            });
+        }
+
+        if (consentCancelBtn) {
+            consentCancelBtn.addEventListener('click', () => {
+                youtubeConsentModal.style.display = 'none';
+                this._pendingConsentTrack = null;
             });
         }
 
@@ -761,35 +814,20 @@ export class VinylPlayer {
             this.showNotification(translations[this.currentLang].playingTrack, "success");
 
         } else {
-            this.isLocalFile = false;
-            this.isVideo = true;
-            this.currentFile = null;
-            this.isPlaying = true; // Mark as playing so rotation/tonearm activate on state change
-            this.localAudio.pause();
-            this.localVideo.pause();
-            this.localVideo.style.display = 'none';
-            this.localVideo.classList.remove('hidden-media');
-            const vt = document.getElementById('vinylTrack');
-            if (vt) vt.classList.remove('hidden-media');
-            this.elements.container.classList.remove('audio-mode-active');
-
-            // Start rotation and tonearm immediately for visual feedback
-            this.startRotation();
-            this.moveToneArmToRecord();
-            this.updatePlayButtonIcon(true);
-
-            // Use YouTubeService to create/load player
-            this.youTubeService.createPlayer(
-                'vinylTrack',
-                track.id,
-                (event, data) => this.onPlayerReady(event, data),
-                (event) => this.onPlayerStateChange(event)
-            );
-
-            this.showNotification(translations[this.currentLang].playingTrack, "success");
+            // Show consent modal before loading YouTube track
+            this._showConsentModal(track);
         }
 
         this.renderQueue(); // refresh active highlight
+
+        // Re-apply current playback speed to new track
+        if (this.elements.speedSelect) {
+            const speed = parseFloat(this.elements.speedSelect.value);
+            if (speed !== 1) {
+                this.localAudio.playbackRate = speed;
+                this.localVideo.playbackRate = speed;
+            }
+        }
     }
 
     // Extracted chapter logic
@@ -859,6 +897,124 @@ export class VinylPlayer {
         this.youTubeService.setVolume(vol);
         this.localAudio.volume = vol / 100;
         this.localVideo.volume = vol / 100;
+    }
+
+    setPlaybackSpeed(speed, silent = false) {
+        // Apply to local audio
+        this.localAudio.playbackRate = speed;
+        // Apply to local video
+        this.localVideo.playbackRate = speed;
+        // Apply to YouTube player
+        if (this.youTubeService && this.youTubeService.player && this.youTubeService.player.setPlaybackRate) {
+            this.youTubeService.player.setPlaybackRate(speed);
+        }
+        if (!silent) this.showNotification(`Playback speed: ${speed}x`, 'success');
+    }
+
+    // ─────────────────────────────────────────────────
+    // YOUTUBE CONSENT + PRIVACY AUDIO FALLBACK
+    // ─────────────────────────────────────────────────
+
+    /** Show the consent modal before loading a YouTube track */
+    _showConsentModal(track) {
+        const savedConsent = localStorage.getItem('ytConsentMode');
+        if (savedConsent === 'video') {
+            this._launchYouTubePlayer(track);
+            return;
+        }
+        if (savedConsent === 'privacy') {
+            this._launchPrivacyAudio(track);
+            return;
+        }
+        const modal = document.getElementById('youtubeConsentModal');
+        if (!modal) {
+            this._launchYouTubePlayer(track);
+            return;
+        }
+        this._pendingConsentTrack = track;
+        modal.style.display = 'flex';
+    }
+
+    /** Standard YouTube iframe player launch */
+    _launchYouTubePlayer(track) {
+        this.isLocalFile = false;
+        this.isVideo = true;
+        this.currentFile = null;
+        this.isPlaying = true;
+        this.localAudio.pause();
+        this.localVideo.pause();
+        this.localVideo.style.display = 'none';
+        this.localVideo.classList.remove('hidden-media');
+        const vt = document.getElementById('vinylTrack');
+        if (vt) vt.classList.remove('hidden-media');
+        this.elements.container.classList.remove('audio-mode-active');
+
+        this.startRotation();
+        this.moveToneArmToRecord();
+        this.updatePlayButtonIcon(true);
+
+        this.youTubeService.createPlayer(
+            'vinylTrack',
+            track.id,
+            (event, data) => this.onPlayerReady(event, data),
+            (event) => this.onPlayerStateChange(event)
+        );
+
+        this.showNotification(translations[this.currentLang].playingTrack, "success");
+    }
+
+    /** Privacy audio fallback — bypasses YouTube iframe entirely */
+    async _launchPrivacyAudio(track) {
+        this.showNotification('Fetching privacy audio stream...', 'success');
+
+        try {
+            const result = await this.youTubeService.playAudioFallback(track.id);
+
+            // Play through the local HTML5 audio element — no YouTube cookies/tracking
+            this.isLocalFile = true;
+            this.isVideo = false;
+            this.currentFile = null;
+            this.isPlaying = true;
+
+            this.youTubeService.pause();
+            this.localVideo.pause();
+            this.localVideo.classList.add('hidden-media');
+            const vt = document.getElementById('vinylTrack');
+            if (vt) vt.classList.add('hidden-media');
+            this.elements.container.classList.add('audio-mode-active');
+
+            this.localAudio.src = result.audioUrl;
+            this.localAudio.play();
+
+            // Update track info from metadata
+            if (result.videoData) {
+                this.elements.textTitle.textContent = result.videoData.title;
+                this.elements.textAuthor.textContent = result.videoData.author;
+                this.updateDesc(result.videoData.author, result.videoData.title);
+                this.updateSongCapsule(result.videoData.title);
+                this.updateMediaSession(result.videoData);
+            }
+
+            // Load cover art
+            this.youTubeService.getVideoCoverUrl(track.id).then(url => {
+                this.elements.vinylCover.style.backgroundImage = `url('${url}')`;
+                this.albumCoverImg = new Image();
+                this.albumCoverImg.crossOrigin = "Anonymous";
+                this.albumCoverImg.src = url;
+            });
+
+            this.startRotation();
+            this.moveToneArmToRecord();
+            this.updatePlayButtonIcon(true);
+
+            this.showNotification('Privacy audio mode active — no YouTube cookies', 'success');
+        } catch (error) {
+            console.error('Privacy audio fallback failed:', error);
+            this.showNotification(
+                'Could not fetch private audio stream. Try the video option instead.',
+                'error'
+            );
+        }
     }
 
     startRotation() {
