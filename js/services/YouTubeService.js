@@ -176,8 +176,8 @@ export class YouTubeService {
                 console.log('Creating YouTube player for:', videoId);
                 this.player = new YT.Player(elementId, {
                     videoId: videoId,
-                    height: '360',
-                    width: '360',
+                    height: '460',
+                    width: '460',
                     playerVars: {
                         enablejsapi: 1,
                         controls: 0,
@@ -185,7 +185,7 @@ export class YouTubeService {
                         playsinline: 1,
                         autoplay: 1,
                         origin: window.location.origin.replace(/\/$/, ''),
-                        widget_referrer: window.location.href.replace(/\/$/, ''),
+                        widget_referrer: window.location.origin.replace(/\/$/, ''),
                         rel: 0
                     },
                     events: {
