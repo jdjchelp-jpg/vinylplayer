@@ -1039,9 +1039,10 @@ input:checked+.slider:before {
     white-space: nowrap !important;
     z-index: 999 !important;
 
-    /* Positions the row perfectly in the top-left area */
-    left: 20px !important;   
-    top: 80px !important;    /* Placed just below the hamburger menu button */
+    /* Positions the row perfectly in the top-right area */
+    right: 20px !important;  /* Anchors it to the right edge instead of left */
+    top: 40px !important;    /* Keeps it aligned near the top edge */
+    left: auto !important;   /* Overrides any previous left positioning */
     transform: none !important; 
     
     width: auto !important;
@@ -1054,6 +1055,11 @@ input:checked+.slider:before {
     align-items: center !important;
     justify-content: center !important;
     margin: 0 !important;
+}
+
+/* Option 2: Hide only when it has no text */
+.desc-container:empty {
+    display: none !important;
 }
 
 /* Lyrics Modal */
