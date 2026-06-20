@@ -1,10 +1,12 @@
-const CACHE_NAME = 'vinyl-player-v23';
+const CACHE_NAME = 'vinyl-player-v24';
 const ASSETS = [
     './',
     './index.html',
     './css/styles.css',
     './js/main.js',
     './js/services/VinylPlayer.js',
+    './js/services/YouTubeService.js',
+    './js/services/ExportEngine.js',
     './js/services/PlaylistManager.js',
     './js/services/i18n.js',
     './js/services/HolidayManager.js',
