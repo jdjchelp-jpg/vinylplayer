@@ -775,15 +775,8 @@ export class VinylPlayer {
     playTrack(track) {
         if (!track) return;
 
-        // Reset chapter pill and chapters for every new track
+        // Reset chapter pill for every new track
         this.updateChapterPill(null);
-        this.chapters = [];
-        this.currentChapterIndex = 0;
-        // Clear long-mode chapter indicator on desc-toggle
-        if (this.elements.descToggle) {
-            this.elements.descToggle.classList.remove('long-mode');
-            this.elements.descToggle.removeAttribute('data-chapter');
-        }
 
         // If track is an ID string (legacy call), convert to minimal object
         if (typeof track === 'string') {
@@ -841,7 +834,6 @@ export class VinylPlayer {
     // Extracted chapter logic
     loadChapters(track) {
         this.chapters = [];
-        this.currentChapterIndex = 0;
         // Detect .m4b audiobook and show chapter pill immediately at Chapter 1
         const isM4b = track.file && track.file.name && track.file.name.toLowerCase().endsWith('.m4b');
         if (isM4b) {
@@ -858,12 +850,7 @@ export class VinylPlayer {
                         // Update chapter pill with first chapter title
                         this.currentChapterIndex = 0;
                         this.updateChapterPill(this.chapters[0].title || 'Chapter 1');
-                    } else {
-                        // No chapters found — ensure chapter UI is hidden
-                        this.updateChapterPill(null);
                     }
-                    // Refresh long-mode state after chapters resolved
-                    this.updateSettings();
                 })
                 .catch(err => console.error(err));
         }
@@ -1312,8 +1299,7 @@ export class VinylPlayer {
                 this.elements.lyricsToggle.style.display = 'block';
             }
         }
-        // Only show chapter long-mode on desc-toggle if chapters actually exist
-        if (this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked && this.chapters.length > 0) {
+        if (this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
             this.elements.descToggle.classList.add('long-mode');
             this.elements.descToggle.setAttribute('data-chapter', translations[this.currentLang].chapter + " 1");
         } else {
