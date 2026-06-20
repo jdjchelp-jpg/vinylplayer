@@ -157,6 +157,7 @@ export class VinylPlayer {
             this.elements.textTitle.textContent = videoData.title;
             this.elements.textAuthor.textContent = videoData.author;
             this.updateDesc(videoData.author, videoData.title);
+            this.updateSongCapsule(videoData.title);
             // ponytail: update media session info on ready
             this.updateMediaSession(videoData);
         }
@@ -180,6 +181,7 @@ export class VinylPlayer {
                 this.elements.textTitle.textContent = data.title;
                 this.elements.textAuthor.textContent = data.author;
                 this.updateDesc(data.author, data.title);
+                this.updateSongCapsule(data.title);
                 this.updateMediaSession(data);
             }
 
@@ -201,6 +203,18 @@ export class VinylPlayer {
     updateDesc(author, title) {
         const descItem = document.querySelector('.desc-item');
         if (descItem) descItem.textContent = `${author} - ${title}`;
+    }
+
+    // Update the song-info-capsule pill text
+    updateSongCapsule(title) {
+        const songTitleEl = document.querySelector('.song-title-text');
+        if (songTitleEl) {
+            songTitleEl.textContent = title || '';
+        }
+        const capsule = document.querySelector('.song-info-capsule');
+        if (capsule) {
+            capsule.style.display = title ? 'inline-flex' : 'none';
+        }
     }
 
     setupLocalMediaListeners() {
@@ -704,12 +718,21 @@ export class VinylPlayer {
 
             this.youTubeService.pause(); // Pause JS player
 
+            // Hide video containers for audio-only local files
             if (this.isVideo) {
                 this.localVideo.src = track.source;
                 this.localVideo.style.display = this.elements.showLocalVideoToggle.checked ? 'block' : 'none';
+                this.localVideo.classList.remove('hidden-media');
+                const vt = document.getElementById('vinylTrack');
+                if (vt) vt.classList.remove('hidden-media');
+                this.elements.container.classList.remove('audio-mode-active');
                 this.localVideo.play();
             } else {
                 this.localAudio.src = track.source;
+                this.localVideo.classList.add('hidden-media');
+                const vt = document.getElementById('vinylTrack');
+                if (vt) vt.classList.add('hidden-media');
+                this.elements.container.classList.add('audio-mode-active');
                 this.localAudio.play();
             }
 
@@ -725,6 +748,10 @@ export class VinylPlayer {
             this.localAudio.pause();
             this.localVideo.pause();
             this.localVideo.style.display = 'none';
+            this.localVideo.classList.remove('hidden-media');
+            const vt = document.getElementById('vinylTrack');
+            if (vt) vt.classList.remove('hidden-media');
+            this.elements.container.classList.remove('audio-mode-active');
 
             // Start rotation and tonearm immediately for visual feedback
             this.startRotation();
@@ -838,6 +865,10 @@ export class VinylPlayer {
         this.elements.lyricsContent.textContent = translations[this.currentLang].noLyrics;
         this.elements.lyricsToggle.style.display = 'none';
 
+        // Update song-info-capsule pill text
+        const trackTitle = (typeof trackOrId === 'object' && trackOrId) ? (trackOrId.title || '') : '';
+        this.updateSongCapsule(trackTitle);
+
         if (this.isLocalFile) {
             const track = trackOrId;
             this.elements.textTitle.textContent = track.title;
@@ -876,8 +907,15 @@ export class VinylPlayer {
                         }
 
                         if (tags.lyrics) {
-                            this.elements.lyricsContent.textContent = tags.lyrics.lyrics || tags.lyrics;
-                            this.elements.lyricsToggle.style.display = 'block';
+                            const lyricsText = tags.lyrics.lyrics || tags.lyrics;
+                            if (lyricsText && lyricsText.trim().length > 0) {
+                                this.elements.lyricsContent.textContent = lyricsText;
+                                this.elements.lyricsToggle.style.display = 'block';
+                                // Update capsule with title from tags
+                                if (tags.title) {
+                                    this.updateSongCapsule(tags.title);
+                                }
+                            }
                         }
 
                         // ponytail: update media session with extracted tags
@@ -1081,8 +1119,10 @@ export class VinylPlayer {
             this.elements.descToggle.classList.remove('long-mode');
             this.elements.descToggle.removeAttribute('data-chapter');
         }
-        if (this.isPlaying) {
+        if (this.isPlaying && this.isVideo) {
             this.toggleVideoMode(true);
+        } else if (this.isPlaying && !this.isVideo) {
+            this.toggleVideoMode(false);
         }
     }
 

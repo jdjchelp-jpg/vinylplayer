@@ -148,34 +148,16 @@ input[type="file"] {
 }
 
 .vinyl-cover {
-    /* This was the center label, but now we want the whole vinyl to be the image? 
-       The user said "I want it to be circular, the image to be circular... I was talking about the vinyl, not the cover."
-       But also "I want to remove that square thing".
-       If I put the image on .vinyl-record, it spins? 
-       The .vinyl-cover spins inside .vinyl-record currently?
-       Let's check HTML.
-       <div class="vinyl-record"> <div class="vinyl-cover">...</div> </div>
-       vinyl-cover has animation: rotate.
-       vinyl-record does NOT rotate.
-       So if I want the image to spin, I should put it on .vinyl-cover and make .vinyl-cover fill the .vinyl-record?
-       Or make .vinyl-record spin?
-       
-       Current CSS:
-       .vinyl-cover { width: 320px; height: 320px; ... animation: rotate ... }
-       
-       If I want the *whole* vinyl to be the image and spin:
-       1. Make .vinyl-cover size 100% of .vinyl-record?
-       2. Or apply image to .vinyl-record and make IT spin?
-       
-       Let's try making .vinyl-cover fill the parent and hold the image.
-    */
     width: 100%;
     height: 100%;
     top: 0;
     left: 0;
     border-radius: 50%;
-    background-size: cover;
-    background-position: center;
+    background-size: contain !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    padding: 8px;
+    box-sizing: border-box;
     position: absolute;
     animation: rotate 8s linear infinite;
     animation-play-state: paused;
@@ -688,13 +670,7 @@ input[type="file"] {
     z-index: -100;
 }
 
-.desc-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1001;
-    /* Увеличим z-index */
-}
+/* desc-container styles moved to PREMIUM TOP-RIGHT CONTROL CENTER section below */
 
 /* ponytail: desc-toggle now matches menu-toggle — same tokens, same feel */
 .desc-toggle {
@@ -1030,30 +1006,7 @@ input:checked+.slider:before {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Keep the top-right button group strictly horizontal */
-.desc-container {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 12px !important;
-    position: absolute !important;
-    white-space: nowrap !important;
-    z-index: 999 !important;
 
-    right: 30px !important;  
-    top: 30px !important;    
-    left: auto !important;   
-    transform: none !important; 
-    
-    width: auto !important;
-    height: auto !important;
-}
-
-/* Ensure individual buttons stay neat and un-squished */
-.desc-container > button,
-.desc-container > div {
-    flex-shrink: 0 !important;
-}
 
 /* Lyrics Modal */
 .lyrics-content {
@@ -1258,6 +1211,28 @@ input:checked+.slider:before {
     box-shadow:
         0 6px 20px rgba(0, 0, 0, 0.2),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Glass overrides for desc-container buttons (must match !important specificity) */
+.glass-mode .desc-container .desc-toggle,
+.glass-mode .desc-container .lyrics-toggle,
+.glass-mode .desc-container .queue-toggle-btn {
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(16px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.glass-mode .desc-container .desc-toggle:hover,
+.glass-mode .desc-container .lyrics-toggle:hover,
+.glass-mode .desc-container .queue-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
 }
 
 /* Modal Content */
@@ -1819,6 +1794,143 @@ input:checked+.slider:before {
     color: var(--clr-text);
     filter: none;
     box-shadow: none;
+}
+
+/* ==========================================================================
+   HIDDEN MEDIA — hides video container during audio-only playback
+   ========================================================================== */
+
+.hidden-media {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ==========================================================================
+   PREMIUM TOP-RIGHT CONTROL CENTER (Optimized for audio/video metadata)
+   ========================================================================== */
+
+/* Reset old desc-container styles for a clean slate */
+.desc-container {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    position: absolute !important;
+    top: 25px !important;
+    right: 25px !important;
+    left: auto !important;
+    transform: none !important;
+    width: auto !important;
+    height: auto !important;
+    z-index: 999 !important;
+}
+
+/* Base button styles — forces them to stay perfect circles */
+.desc-container .control-btn,
+.desc-container .desc-toggle,
+.desc-container .lyrics-toggle,
+.desc-container .queue-toggle-btn {
+    flex-shrink: 0 !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+    padding: 7px 10px !important;
+}
+
+.desc-container .control-btn:hover,
+.desc-container .desc-toggle:hover,
+.desc-container .lyrics-toggle:hover,
+.desc-container .queue-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+.desc-container .control-btn:active,
+.desc-container .desc-toggle:active,
+.desc-container .lyrics-toggle:active,
+.desc-container .queue-toggle-btn:active {
+    transform: translateY(0) !important;
+}
+
+/* The New Dedicated Song/Chapter Information Capsule */
+.song-info-capsule {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 38px !important;
+    padding: 0 16px !important;
+    border-radius: 19px !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    max-width: 260px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+}
+
+
+
+/* The text element inside the pill */
+.song-title-text {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 13px !important;
+    font-family: system-ui, -apple-system, sans-serif !important;
+    letter-spacing: 0.3px !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
+}
+
+/* Ensure desc-items (dropdown) stays below everything */
+.desc-items {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+}
+
+/* ==========================================================================
+   AUDIO MODE — hides glass containers during audio-only playback
+   ========================================================================== */
+
+.container.audio-mode-active #vinylTrack {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.container.audio-mode-active #localVideo {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
 }
 
 /* Responsive: queue panel full-width on small screens */
