@@ -20,7 +20,7 @@ export class YouTubeService {
 
         this.player = new YT.Player(elementId, {
             videoId: videoId,
-            height: '460', // Matches your upscaled vinyl player size!
+            height: '460',
             width: '460',
             playerVars: {
                 'enablejsapi': 1,
@@ -29,7 +29,6 @@ export class YouTubeService {
                 'playsinline': 1,
                 'autoplay': 1,
                 'host': 'https://www.youtube-nocookie.com',
-                /* Official parameters bind the messaging channel directly to your Vercel URL */
                 'origin': cleanParentOrigin,
                 'widget_referrer': cleanParentOrigin
             },
@@ -46,6 +45,99 @@ export class YouTubeService {
                 }
             }
         });
+    }
+
+    // ── Playback Controls ──────────────────────────────
+
+    play() {
+        if (this.player && this.player.playVideo) this.player.playVideo();
+    }
+
+    pause() {
+        if (this.player && this.player.pauseVideo) this.player.pauseVideo();
+    }
+
+    stop() {
+        if (this.player && this.player.stopVideo) this.player.stopVideo();
+    }
+
+    setVolume(vol) {
+        if (this.player && this.player.setVolume) this.player.setVolume(vol);
+    }
+
+    getVolume() {
+        if (this.player && this.player.getVolume) return this.player.getVolume();
+        return 100;
+    }
+
+    seekTo(seconds) {
+        if (this.player && this.player.seekTo) this.player.seekTo(seconds, true);
+    }
+
+    getCurrentTime() {
+        if (this.player && this.player.getCurrentTime) return this.player.getCurrentTime();
+        return 0;
+    }
+
+    getDuration() {
+        if (this.player && this.player.getDuration) return this.player.getDuration();
+        return 0;
+    }
+
+    getVideoData() {
+        if (this.player && this.player.getVideoData) return this.player.getVideoData();
+        return null;
+    }
+
+    // ── Helpers ─────────────────────────────────────────
+
+    /**
+     * Get the YouTube video thumbnail URL.
+     */
+    getVideoCoverUrl(videoId) {
+        return Promise.resolve(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
+    }
+
+    /**
+     * Fetch basic video details via the oEmbed API (no API key needed).
+     */
+    async getVideoDetails(videoId) {
+        try {
+            const url = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+            const resp = await fetch(url);
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            return {
+                title: data.title || 'Unknown Title',
+                author: data.author_name || 'Unknown Artist'
+            };
+        } catch (err) {
+            console.warn('getVideoDetails failed:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Privacy audio fallback — returns a direct audio URL using a
+     * third-party service. This avoids loading the YouTube iframe.
+     */
+    async playAudioFallback(videoId) {
+        // Use a public cobalt API to fetch a direct audio stream
+        const cobaltUrl = 'https://api.cobalt.tools/api/json';
+        const resp = await fetch(cobaltUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+                url: `https://www.youtube.com/watch?v=${videoId}`,
+                isAudioOnly: true,
+                aFormat: 'mp3'
+            })
+        });
+        if (!resp.ok) throw new Error('Cobalt API request failed');
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        const videoData = await this.getVideoDetails(videoId);
+        return { audioUrl: data.url, videoData };
     }
 }
 
