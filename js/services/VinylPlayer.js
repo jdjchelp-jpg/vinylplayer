@@ -772,7 +772,7 @@ export class VinylPlayer {
         }
     }
 
-    playTrack(track) {
+    async playTrack(track) {
         if (!track) return;
 
         // Reset chapter pill for every new track
@@ -815,8 +815,15 @@ export class VinylPlayer {
             this.showNotification(translations[this.currentLang].playingTrack, "success");
 
         } else {
-            // Show consent modal before loading YouTube track
-            this._showConsentModal(track);
+            // Fix 4: Try Cobalt audio fallback FIRST (no iframe, no postMessage issues)
+            try {
+                const result = await this.youTubeService.playAudioFallback(track.id);
+                this._playCobaltAudio(track, result);
+            } catch (e) {
+                console.warn("Cobalt audio fallback failed, trying YouTube iframe:", e);
+                // Fall back to existing consent modal flow
+                this._showConsentModal(track);
+            }
         }
 
         this.renderQueue(); // refresh active highlight
@@ -967,47 +974,9 @@ export class VinylPlayer {
     /** Privacy audio fallback — bypasses YouTube iframe entirely */
     async _launchPrivacyAudio(track) {
         this.showNotification('Fetching privacy audio stream...', 'success');
-
         try {
             const result = await this.youTubeService.playAudioFallback(track.id);
-
-            // Play through the local HTML5 audio element — no YouTube cookies/tracking
-            this.isLocalFile = true;
-            this.isVideo = false;
-            this.currentFile = null;
-            this.isPlaying = true;
-
-            this.youTubeService.pause();
-            this.localVideo.pause();
-            this.localVideo.classList.add('hidden-media');
-            const vt = document.getElementById('vinylTrack');
-            if (vt) vt.classList.add('hidden-media');
-            this.elements.container.classList.add('audio-mode-active');
-
-            this.localAudio.src = result.audioUrl;
-            this.localAudio.play();
-
-            // Update track info from metadata
-            if (result.videoData) {
-                this.elements.textTitle.textContent = result.videoData.title;
-                this.elements.textAuthor.textContent = result.videoData.author;
-                this.updateDesc(result.videoData.author, result.videoData.title);
-                this.updateSongCapsule(result.videoData.title);
-                this.updateMediaSession(result.videoData);
-            }
-
-            // Load cover art
-            this.youTubeService.getVideoCoverUrl(track.id).then(url => {
-                this.elements.vinylCover.style.backgroundImage = `url('${url}')`;
-                this.albumCoverImg = new Image();
-                this.albumCoverImg.crossOrigin = "Anonymous";
-                this.albumCoverImg.src = url;
-            });
-
-            this.startRotation();
-            this.moveToneArmToRecord();
-            this.updatePlayButtonIcon(true);
-
+            this._playCobaltAudio(track, result);
             this.showNotification('Privacy audio mode active — no YouTube cookies', 'success');
         } catch (error) {
             console.error('Privacy audio fallback failed:', error);
@@ -1016,6 +985,50 @@ export class VinylPlayer {
                 'error'
             );
         }
+    }
+
+    /**
+     * Play audio from a Cobalt API result through the local HTML5 audio element.
+     * This avoids loading the YouTube iframe entirely — no postMessage issues, no tracking cookies.
+     */
+    _playCobaltAudio(track, result) {
+        this.isLocalFile = true;
+        this.isVideo = false;
+        this.currentFile = null;
+        this.isPlaying = true;
+
+        this.youTubeService.pause();
+        this.localVideo.pause();
+        this.localVideo.classList.add('hidden-media');
+        const vt = document.getElementById('vinylTrack');
+        if (vt) vt.classList.add('hidden-media');
+        this.elements.container.classList.add('audio-mode-active');
+
+        this.localAudio.src = result.audioUrl;
+        this.localAudio.play();
+
+        // Update track info from metadata
+        if (result.videoData) {
+            this.elements.textTitle.textContent = result.videoData.title;
+            this.elements.textAuthor.textContent = result.videoData.author;
+            this.updateDesc(result.videoData.author, result.videoData.title);
+            this.updateSongCapsule(result.videoData.title);
+            this.updateMediaSession(result.videoData);
+        }
+
+        // Load cover art
+        this.youTubeService.getVideoCoverUrl(track.id).then(url => {
+            this.elements.vinylCover.style.backgroundImage = `url('${url}')`;
+            this.albumCoverImg = new Image();
+            this.albumCoverImg.crossOrigin = "Anonymous";
+            this.albumCoverImg.src = url;
+        });
+
+        this.startRotation();
+        this.moveToneArmToRecord();
+        this.updatePlayButtonIcon(true);
+
+        this.showNotification(translations[this.currentLang].playingTrack, "success");
     }
 
     startRotation() {

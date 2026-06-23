@@ -33,7 +33,8 @@ export class YouTubeService {
                 'autoplay': 1,
                 'rel': 0,
                 'iv_load_policy': 3,
-                'origin': myOrigin // Pass the origin in playerVars to whitelist the domain
+                'origin': myOrigin, // Pass the origin in playerVars to whitelist the domain
+                'widget_referrer': window.location.href // Helps YouTube validate the origin chain
             },
             events: {
                 'onReady': (event) => {
@@ -126,26 +127,65 @@ export class YouTubeService {
     }
 
     /**
-     * Privacy audio fallback — returns a direct audio URL using a
-     * third-party service. This avoids loading the YouTube iframe.
+     * Audio fallback using public proxy services.
+     * Removes reliance on YouTube Iframe API to bypass CORS/Origin errors.
+     * Tries each proxy in order; falls through if one fails.
      */
     async playAudioFallback(videoId) {
-        // Use a public cobalt API to fetch a direct audio stream
-        const cobaltUrl = 'https://api.cobalt.tools/api/json';
-        const resp = await fetch(cobaltUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({
-                url: `https://www.youtube.com/watch?v=${videoId}`,
-                isAudioOnly: true,
-                aFormat: 'mp3'
-            })
-        });
-        if (!resp.ok) throw new Error('Cobalt API request failed');
-        const data = await resp.json();
-        if (data.error) throw new Error(data.error);
-        const videoData = await this.getVideoDetails(videoId);
-        return { audioUrl: data.url, videoData };
+        // List of available public audio extraction endpoints
+        // Note: Community-maintained services may change uptime frequently.
+        const proxies = [
+            {
+                name: 'Cobalt',
+                url: 'https://api.cobalt.tools/api/json',
+                headers: { 'Content-Type': 'application/json' }
+            }
+        ];
+
+        console.log(`[Audio Fallback] Attempting to fetch audio for ${videoId}...`);
+
+        for (const proxy of proxies) {
+            try {
+                console.log(`[Audio Fallback] Trying ${proxy.name}...`);
+
+                const resp = await fetch(proxy.url, {
+                    method: 'POST',
+                    headers: {
+                        ...proxy.headers,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: `https://www.youtube.com/watch?v=${videoId}`,
+                        isAudioOnly: true,
+                        aFormat: 'mp3'
+                    })
+                });
+
+                if (!resp.ok) throw new Error(`Status ${resp.status}`);
+
+                const data = await resp.json();
+
+                if (!data.url) throw new Error('No URL returned');
+
+                // Success! Get metadata too
+                const meta = await this.getVideoDetails(videoId);
+
+                console.log(`[Audio Fallback] Success via ${proxy.name}!`);
+                return {
+                    success: true,
+                    audioUrl: data.url,
+                    source: proxy.name,
+                    metadata: meta,
+                    videoData: meta // backward compatibility
+                };
+
+            } catch (err) {
+                console.warn(`[Audio Fallback] ${proxy.name} failed:`, err.message);
+                // Continue to next proxy
+            }
+        }
+
+        throw new Error('All audio extraction proxies failed.');
     }
 }
 
