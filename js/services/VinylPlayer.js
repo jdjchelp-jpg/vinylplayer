@@ -180,7 +180,7 @@ export class VinylPlayer {
     onPlayerStateChange(event) {
         if (this.isLocalFile) return;
 
-        if (event.data == YT.PlayerState.PLAYING) {
+        if (event.data === 1 /* YT.PlayerState.PLAYING */) {
             this.isPlaying = true;
             this.startRotation();
             this.moveToneArmToRecord();
@@ -199,12 +199,12 @@ export class VinylPlayer {
                 this.updateMediaSession(data);
             }
 
-        } else if (event.data == YT.PlayerState.PAUSED) {
+        } else if (event.data === 2 /* YT.PlayerState.PAUSED */) {
             this.isPlaying = false;
             this.stopRotation();
             this.updatePlayButtonIcon(false);
             this.updateMediaSessionPlaybackState('paused');
-        } else if (event.data == YT.PlayerState.ENDED) {
+        } else if (event.data === 0 /* YT.PlayerState.ENDED */) {
             this.isPlaying = false;
             this.stopRotation();
             this.updatePlayButtonIcon(false);
@@ -965,7 +965,10 @@ export class VinylPlayer {
             'vinylTrack',
             track.id,
             (event, data) => this.onPlayerReady(event, data),
-            (event) => this.onPlayerStateChange(event)
+            (event) => this.onPlayerStateChange(event),
+            () => {
+                this.showNotification('Audio stream failed. The video may not be available.', 'error');
+            }
         );
 
         this.showNotification(translations[this.currentLang].playingTrack, "success");
@@ -1846,7 +1849,9 @@ export class VinylPlayer {
             };
             this.isLocalFile = false;
             this.isVideo = true;
-            this.youTubeService.createPlayer('vinylTrack', track.id, onReady, onStateChange);
+            this.youTubeService.createPlayer('vinylTrack', track.id, onReady, onStateChange, () => {
+                reject(new Error('YouTube audio stream failed for video: ' + track.id));
+            });
             setTimeout(() => {
                 if (track.duration === undefined) {
                     reject(new Error('YouTube load timeout for video: ' + track.id));
