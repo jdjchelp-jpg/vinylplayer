@@ -13,11 +13,7 @@ export class YouTubeService {
             return;
         }
 
-        // Clean trailing slashes natively—secures the postMessage channel safely!
-        const cleanParentOrigin = window.location.origin.replace(/\/$/, "");
-
-        console.log(`Creating standard YouTube player for: ${videoId} under origin: ${cleanParentOrigin}`);
-        console.log("YouTube player origin:", window.location.origin);
+        console.log(`Creating standard YouTube player for: ${videoId}`);
 
         this.player = new YT.Player(elementId, {
             videoId: videoId,
@@ -28,9 +24,7 @@ export class YouTubeService {
                 'controls': 0,
                 'modestbranding': 1,
                 'playsinline': 1,
-                'autoplay': 1,
-                'origin': cleanParentOrigin,
-                'widget_referrer': cleanParentOrigin
+                'autoplay': 1
             },
             events: {
                 'onReady': (event) => {
