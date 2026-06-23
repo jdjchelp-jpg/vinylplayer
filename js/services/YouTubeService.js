@@ -6,6 +6,7 @@ export class YouTubeService {
 
     /**
      * Official, safe initialization method expected by VinylPlayer.js
+     * FIXED: Added 'origin' and 'host' to prevent postMessage cross-origin errors.
      */
     createPlayer(elementId, videoId, onReadyCallback, onStateChangeCallback) {
         if (typeof YT === 'undefined' || !YT.Player) {
@@ -13,22 +14,31 @@ export class YouTubeService {
             return;
         }
 
-        console.log(`Creating standard YouTube player for: ${videoId}`);
+        console.log(`Creating standard YouTube player for: ${videoId} under origin: ${window.location.origin}`);
+
+        // Explicitly define host and origin to match your deployment domain
+        const myOrigin = window.location.origin;
 
         this.player = new YT.Player(elementId, {
             videoId: videoId,
             height: '460',
             width: '460',
+            // Use nocookie host to reduce tracking and avoid CSP/postMessage conflicts
+            host: 'https://www.youtube-nocookie.com',
             playerVars: {
                 'enablejsapi': 1,
                 'controls': 0,
                 'modestbranding': 1,
                 'playsinline': 1,
-                'autoplay': 1
+                'autoplay': 1,
+                'rel': 0,
+                'iv_load_policy': 3,
+                'origin': myOrigin // Pass the origin in playerVars to whitelist the domain
             },
             events: {
                 'onReady': (event) => {
                     this.playerReady = true;
+                    console.log("YouTube Player Ready");
                     if (onReadyCallback) onReadyCallback(event);
                 },
                 'onStateChange': (event) => {
@@ -36,6 +46,10 @@ export class YouTubeService {
                 },
                 'onError': (event) => {
                     console.error("YouTube Player Error:", event.data);
+                    // Specific check for "Invalid Video ID" or "Embedding Disallowed"
+                    if (event.data === 5) {
+                        console.warn("Video cannot be embedded. Try fallback audio.");
+                    }
                 }
             }
         });
