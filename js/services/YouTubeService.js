@@ -17,6 +17,7 @@ export class YouTubeService {
         const cleanParentOrigin = window.location.origin.replace(/\/$/, "");
 
         console.log(`Creating standard YouTube player for: ${videoId} under origin: ${cleanParentOrigin}`);
+        console.log("YouTube player origin:", window.location.origin);
 
         this.player = new YT.Player(elementId, {
             videoId: videoId,
@@ -28,7 +29,6 @@ export class YouTubeService {
                 'modestbranding': 1,
                 'playsinline': 1,
                 'autoplay': 1,
-                'host': 'https://www.youtube-nocookie.com',
                 'origin': cleanParentOrigin,
                 'widget_referrer': cleanParentOrigin
             },
