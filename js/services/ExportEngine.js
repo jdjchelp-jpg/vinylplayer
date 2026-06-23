@@ -19,6 +19,7 @@ export class ExportEngine {
         if (!ffmpeg.loaded) {
             await ffmpeg.load({
                 coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
+                wasmURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm",
             });
         }
 

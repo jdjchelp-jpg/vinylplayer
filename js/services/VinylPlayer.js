@@ -1396,6 +1396,7 @@ export class VinylPlayer {
                 // Load FFmpeg from CDN
                 await this.ffmpeg.load({
                     coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
+                    wasmURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm",
                 });
             }
 
@@ -2216,6 +2217,7 @@ export class VinylPlayer {
 
         await this.ffmpeg.load({
             coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
         });
 
         this.ffmpegLoaded = true;

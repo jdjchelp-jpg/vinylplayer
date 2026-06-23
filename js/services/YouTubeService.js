@@ -1,4 +1,4 @@
-class YouTubeService {
+export class YouTubeService {
     constructor() {
         this.player = null;
         this.playerReady = false;
@@ -28,6 +28,7 @@ class YouTubeService {
                 'modestbranding': 1,
                 'playsinline': 1,
                 'autoplay': 1,
+                'host': 'https://www.youtube-nocookie.com',
                 /* Official parameters bind the messaging channel directly to your Vercel URL */
                 'origin': cleanParentOrigin,
                 'widget_referrer': cleanParentOrigin
