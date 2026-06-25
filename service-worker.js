@@ -12,6 +12,7 @@ const ASSETS = [
     './js/mp4box.all.min.js',
     './js/ffmpeg-util.js',
     './js/ffmpeg.js',
+    './js/814.ffmpeg.js',
     './js/jsmediatags.js',
     './wasm/ffmpeg-core.js',
     './wasm/ffmpeg-core.wasm',
