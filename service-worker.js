@@ -1,15 +1,20 @@
-const CACHE_NAME = 'vinyl-player-v24';
+const CACHE_NAME = 'vinyl-player-v25';
 const ASSETS = [
     './',
     './index.html',
     './css/styles.css',
     './js/main.js',
     './js/services/VinylPlayer.js',
-
     './js/services/ExportEngine.js',
     './js/services/PlaylistManager.js',
     './js/services/i18n.js',
     './js/services/HolidayManager.js',
+    './js/mp4box.all.min.js',
+    './js/ffmpeg-util.js',
+    './js/ffmpeg.js',
+    './js/jsmediatags.js',
+    './wasm/ffmpeg-core.js',
+    './wasm/ffmpeg-core.wasm',
     './manifest.json',
     './favicon.png',
     './images/favicon.svg',

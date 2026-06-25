@@ -72,7 +72,8 @@
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
                 <span>Load from file</span>
-                <input type="file" id="fileInput" accept=".mp3, .flac, .wav, .ogg, .aif, .mp4, .webm, .m4v, .m4b"
+                <input type="file" id="fileInput"
+                    accept=".mp3,.m4a,.flac,.wav,.wma,.ogg,.oga,.opus,.alac,.aiff,.aif,.m4b,.m4p,.aac,.ac3,.amr,.ape,.wv,.tta,.mpc,.mp2,.mid,.midi,.mod,.s3m,.xm,.it,.mp4,.m4v,.mkv,.mov,.webm,.avi,.wmv,.ts,.mts,.m2ts,.vob,.mpg,.mpeg,.m1v,.m2v,.ogv,.flv,.f4v,.3gp,.3g2,.asf,.rm,.rmvb,.divx,.xvid,.amv,.bik,.nsv,.dvr-ms,.wtv,.mka,.mks"
                     multiple="">
             </label>
             <button class="menu-item" id="loadUrlBtn">
@@ -122,6 +123,23 @@
                     </path>
                 </svg>
                 <span>Settings</span>
+            </button>
+            <button class="menu-item" id="timestampBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span data-i18n="timestampInput">Add Chapters</span>
+            </button>
+            <button class="menu-item" id="supportedFormatsBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span data-i18n="supportedFormats">Supported Formats</span>
             </button>
             <button class="menu-item" id="audioToolsBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
@@ -401,6 +419,108 @@
     </div>
 
     <!-- FFmpeg Processing Modal -->
+    <div class="modal" id="formatsModal">
+        <div class="modal-content formats-modal-content">
+            <h2 data-i18n="supportedFormats">Supported Formats</h2>
+            <div class="formats-grid">
+                <div class="formats-category">
+                    <h3 class="formats-category-title">&#127925; Audio</h3>
+                    <div class="formats-list">
+                        <div class="format-badge">.mp3</div>
+                        <div class="format-badge">.m4a</div>
+                        <div class="format-badge">.flac</div>
+                        <div class="format-badge">.wav</div>
+                        <div class="format-badge">.ogg</div>
+                        <div class="format-badge">.oga</div>
+                        <div class="format-badge">.opus</div>
+                        <div class="format-badge">.alac</div>
+                        <div class="format-badge">.aiff</div>
+                        <div class="format-badge">.aif</div>
+                        <div class="format-badge">.wma</div>
+                        <div class="format-badge">.aac</div>
+                        <div class="format-badge">.ac3</div>
+                        <div class="format-badge">.ape</div>
+                        <div class="format-badge">.wv</div>
+                        <div class="format-badge">.tta</div>
+                        <div class="format-badge">.mpc</div>
+                        <div class="format-badge">.mp2</div>
+                    </div>
+                </div>
+                <div class="formats-category">
+                    <h3 class="formats-category-title">&#128214; Audiobooks</h3>
+                    <div class="formats-list">
+                        <div class="format-badge">.m4b</div>
+                        <div class="format-badge">.m4p</div>
+                        <div class="format-badge">.mid</div>
+                        <div class="format-badge">.midi</div>
+                        <div class="format-badge">.mod</div>
+                        <div class="format-badge">.s3m</div>
+                        <div class="format-badge">.xm</div>
+                        <div class="format-badge">.it</div>
+                    </div>
+                </div>
+                <div class="formats-category">
+                    <h3 class="formats-category-title">&#127909; Video</h3>
+                    <div class="formats-list">
+                        <div class="format-badge">.mp4</div>
+                        <div class="format-badge">.m4v</div>
+                        <div class="format-badge">.mkv</div>
+                        <div class="format-badge">.mov</div>
+                        <div class="format-badge">.webm</div>
+                        <div class="format-badge">.avi</div>
+                        <div class="format-badge">.wmv</div>
+                        <div class="format-badge">.ts</div>
+                        <div class="format-badge">.mts</div>
+                        <div class="format-badge">.m2ts</div>
+                        <div class="format-badge">.vob</div>
+                        <div class="format-badge">.mpg</div>
+                        <div class="format-badge">.mpeg</div>
+                        <div class="format-badge">.ogv</div>
+                        <div class="format-badge">.flv</div>
+                        <div class="format-badge">.3gp</div>
+                        <div class="format-badge">.asf</div>
+                        <div class="format-badge">.rm</div>
+                        <div class="format-badge">.rmvb</div>
+                        <div class="format-badge">.divx</div>
+                        <div class="format-badge">.xvid</div>
+                        <div class="format-badge">.bik</div>
+                        <div class="format-badge">.nsv</div>
+                        <div class="format-badge">.wtv</div>
+                    </div>
+                </div>
+                <div class="formats-category">
+                    <h3 class="formats-category-title">&#9889; Best Supported</h3>
+                    <div class="formats-list">
+                        <div class="format-badge recommended">.mp3</div>
+                        <div class="format-badge recommended">.flac</div>
+                        <div class="format-badge recommended">.wav</div>
+                        <div class="format-badge recommended">.ogg</div>
+                        <div class="format-badge recommended">.opus</div>
+                        <div class="format-badge recommended">.mp4</div>
+                        <div class="format-badge recommended">.webm</div>
+                        <div class="format-badge recommended">.m4b</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn" id="formatsModalCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="timestampModal">
+        <div class="modal-content timestamp-modal-content">
+            <h2 data-i18n="timestampInput">Add Chapters</h2>
+            <p class="timestamp-hint" data-i18n="pasteTracklist">Paste your tracklist below (e.g. 0:00 - Song Title - Artist):</p>
+            <textarea id="timestampInput" class="timestamp-textarea" placeholder="0:00 - Last Christmas - Wham&#10;4:28 - Jingle Bell Rock - Daryl Hall & John Oates&#10;6:36 - All I Want For Christmas Is You - Mariah Carey" spellcheck="false"></textarea>
+            <p class="timestamp-hint"><span data-i18n="chapterFormatHint">One line per chapter: M:SS or HH:MM:SS - Title - Artist</span></p>
+            <div class="modal-buttons">
+                <button class="modal-btn" id="timestampParseBtn" data-i18n="parseChapters">Parse & Apply</button>
+                <button class="modal-btn secondary" id="timestampCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="ffmpegModal">
         <div class="modal-content ffmpeg-modal-content">
             <h2>&#127911; Audio Processing</h2>

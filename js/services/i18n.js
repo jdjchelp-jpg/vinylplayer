@@ -29,7 +29,14 @@ export const translations = {
         chapters: "Chapters",
         holidayMode: "Holiday Mode Active!",
         chapter: "Chapter",
-        glassMode: "Glass mode"
+        glassMode: "Glass mode",
+        supportedFormats: "Supported Formats",
+        timestampInput: "Add Chapters",
+        pasteTracklist: "Paste your tracklist below (e.g. 0:00 - Song Title - Artist):",
+        parseChapters: "Parse & Apply",
+        chapterParseSuccess: "Chapters applied!",
+        chapterParseError: "Could not parse tracklist. Check format.",
+        chapterFormatHint: "One line per chapter: M:SS - Title - Artist"
     },
     es: {
         loadFromFile: "Cargar archivo",
@@ -58,7 +65,14 @@ export const translations = {
         chapters: "Capítulos",
         holidayMode: "¡Modo festivo activo!",
         chapter: "Capítulo",
-        glassMode: "Modo cristal"
+        glassMode: "Modo cristal",
+        supportedFormats: "Formatos soportados",
+        timestampInput: "Añadir capítulos",
+        pasteTracklist: "Pega tu lista de canciones (ej. 0:00 - Título - Artista):",
+        parseChapters: "Analizar y aplicar",
+        chapterParseSuccess: "¡Capítulos aplicados!",
+        chapterParseError: "No se pudo analizar la lista. Revisa el formato.",
+        chapterFormatHint: "Una línea por capítulo: M:SS - Título - Artista"
     },
     fr: {
         loadFromFile: "Charger fichier",
@@ -87,7 +101,14 @@ export const translations = {
         chapters: "Chapitres",
         holidayMode: "Mode festif actif !",
         chapter: "Chapitre",
-        glassMode: "Mode verre"
+        glassMode: "Mode verre",
+        supportedFormats: "Formats supportés",
+        timestampInput: "Ajouter des chapitres",
+        pasteTracklist: "Collez votre liste de titres (ex. 0:00 - Titre - Artiste):",
+        parseChapters: "Analyser et appliquer",
+        chapterParseSuccess: "Chapitres appliqués !",
+        chapterParseError: "Impossible d'analyser la liste. Vérifiez le format.",
+        chapterFormatHint: "Une ligne par chapitre : M:SS - Titre - Artiste"
     },
     de: {
         loadFromFile: "Datei laden",
@@ -116,7 +137,14 @@ export const translations = {
         chapters: "Kapitel",
         holidayMode: "Feiertagsmodus aktiv!",
         chapter: "Kapitel",
-        glassMode: "Glasmodus"
+        glassMode: "Glasmodus",
+        supportedFormats: "Unterstützte Formate",
+        timestampInput: "Kapitel hinzufügen",
+        pasteTracklist: "Fügen Sie Ihre Tracklist ein (z.B. 0:00 - Titel - Künstler):",
+        parseChapters: "Analysieren & Anwenden",
+        chapterParseSuccess: "Kapitel angewendet!",
+        chapterParseError: "Tracklist konnte nicht analysiert werden.",
+        chapterFormatHint: "Eine Zeile pro Kapitel: M:SS - Titel - Künstler"
     },
     it: {
         loadFromFile: "Carica da file",
@@ -145,7 +173,14 @@ export const translations = {
         chapters: "Capitoli",
         holidayMode: "Modalità vacanza attiva!",
         chapter: "Capitolo",
-        glassMode: "Modalità vetro"
+        glassMode: "Modalità vetro",
+        supportedFormats: "Formati supportati",
+        timestampInput: "Aggiungi capitoli",
+        pasteTracklist: "Incolla la tua lista tracce (es. 0:00 - Titolo - Artista):",
+        parseChapters: "Analizza e applica",
+        chapterParseSuccess: "Capitoli applicati!",
+        chapterParseError: "Impossibile analizzare la lista. Controlla il formato.",
+        chapterFormatHint: "Una riga per capitolo: M:SS - Titolo - Artista"
     },
     pt: {
         loadFromFile: "Carregar do arquivo",
@@ -174,7 +209,14 @@ export const translations = {
         chapters: "Capítulos",
         holidayMode: "Modo festivo ativo!",
         chapter: "Capítulo",
-        glassMode: "Modo vidro"
+        glassMode: "Modo vidro",
+        supportedFormats: "Formatos suportados",
+        timestampInput: "Adicionar capítulos",
+        pasteTracklist: "Cole sua lista de faixas (ex. 0:00 - Título - Artista):",
+        parseChapters: "Analisar e aplicar",
+        chapterParseSuccess: "Capítulos aplicados!",
+        chapterParseError: "Não foi possível analisar a lista.",
+        chapterFormatHint: "Uma linha por capítulo: M:SS - Título - Artista"
     },
     ru: {
         loadFromFile: "Загрузить из файла",
@@ -203,7 +245,14 @@ export const translations = {
         chapters: "Главы",
         holidayMode: "Праздничный режим активен!",
         chapter: "Глава",
-        glassMode: "Режим стекла"
+        glassMode: "Режим стекла",
+        supportedFormats: "Поддерживаемые форматы",
+        timestampInput: "Добавить главы",
+        pasteTracklist: "Вставьте список дорожек (напр. 0:00 - Название - Исполнитель):",
+        parseChapters: "Применить",
+        chapterParseSuccess: "Главы применены!",
+        chapterParseError: "Не удалось разобрать список.",
+        chapterFormatHint: "Одна строка на главу: M:SS - Название - Исполнитель"
     },
     ja: {
         loadFromFile: "ファイルから読み込み",
@@ -232,7 +281,14 @@ export const translations = {
         chapters: "チャプター",
         holidayMode: "ホリデーモードが有効です！",
         chapter: "チャプター",
-        glassMode: "ガラスモード"
+        glassMode: "ガラスモード",
+        supportedFormats: "サポート形式",
+        timestampInput: "チャプターを追加",
+        pasteTracklist: "トラックリストを貼り付け (例: 0:00 - タイトル - アーティスト):",
+        parseChapters: "解析して適用",
+        chapterParseSuccess: "チャプターを適用しました！",
+        chapterParseError: "リストを解析できませんでした。",
+        chapterFormatHint: "1行に1チャプター: M:SS - タイトル - アーティスト"
     },
     zh: {
         loadFromFile: "从文件加载",
@@ -261,7 +317,14 @@ export const translations = {
         chapters: "章节",
         holidayMode: "节日模式已激活！",
         chapter: "章节",
-        glassMode: "玻璃模式"
+        glassMode: "玻璃模式",
+        supportedFormats: "支持的格式",
+        timestampInput: "添加章节",
+        pasteTracklist: "粘贴曲目列表 (例如: 0:00 - 歌名 - 艺术家):",
+        parseChapters: "解析并应用",
+        chapterParseSuccess: "章节已应用！",
+        chapterParseError: "无法解析列表。请检查格式。",
+        chapterFormatHint: "每行一个章节: M:SS - 歌名 - 艺术家"
     },
     ko: {
         loadFromFile: "파일에서 불러오기",
@@ -290,7 +353,14 @@ export const translations = {
         chapters: "챕터",
         holidayMode: "휴일 모드 활성화됨!",
         chapter: "챕터",
-        glassMode: "글래스 모드"
+        glassMode: "글래스 모드",
+        supportedFormats: "지원되는 형식",
+        timestampInput: "챕터 추가",
+        pasteTracklist: "트랙 목록을 붙여넣으세요 (예: 0:00 - 곡명 - 아티스트):",
+        parseChapters: "분석 및 적용",
+        chapterParseSuccess: "챕터가 적용되었습니다!",
+        chapterParseError: "목록을 분석할 수 없습니다.",
+        chapterFormatHint: "챕터당 한 줄: M:SS - 곡명 - 아티스트"
     },
     ar: {
         loadFromFile: "تحميل من ملف",
@@ -319,7 +389,14 @@ export const translations = {
         chapters: "الفصول",
         holidayMode: "وضع العطلة نشط!",
         chapter: "الفصل",
-        glassMode: "وضع الزجاج"
+        glassMode: "وضع الزجاج",
+        supportedFormats: "الصيغ المدعومة",
+        timestampInput: "إضافة فصول",
+        pasteTracklist: "الصق قائمة الأغاني (مثلاً 0:00 - العنوان - الفنان):",
+        parseChapters: "تحليل وتطبيق",
+        chapterParseSuccess: "تم تطبيق الفصول!",
+        chapterParseError: "تعذر تحليل القائمة.",
+        chapterFormatHint: "سطر واحد لكل فصل: M:SS - العنوان - الفنان"
     },
     hi: {
         loadFromFile: "फ़ाइल से लोड करें",
@@ -348,7 +425,14 @@ export const translations = {
         chapters: "अध्याय",
         holidayMode: "छुट्टियों का मोड सक्रिय है!",
         chapter: "अध्याय",
-        glassMode: "काच मोड"
+        glassMode: "काच मोड",
+        supportedFormats: "समर्थित प्रारूप",
+        timestampInput: "अध्याय जोड़ें",
+        pasteTracklist: "अपनी ट्रैक सूची पेस्ट करें (जैसे 0:00 - शीर्षक - कलाकार):",
+        parseChapters: "विश्लेषण और लागू करें",
+        chapterParseSuccess: "अध्याय लागू हो गए!",
+        chapterParseError: "सूची का विश्लेषण नहीं हो सका।",
+        chapterFormatHint: "प्रति अध्याय एक पंक्ति: M:SS - शीर्षक - कलाकार"
     },
     nl: {
         loadFromFile: "Laden uit bestand",
@@ -377,7 +461,14 @@ export const translations = {
         chapters: "Hoofdstukken",
         holidayMode: "Feestdagenmodus actief!",
         chapter: "Hoofdstuk",
-        glassMode: "Glas-modus"
+        glassMode: "Glas-modus",
+        supportedFormats: "Ondersteunde formaten",
+        timestampInput: "Hoofdstukken toevoegen",
+        pasteTracklist: "Plak je tracklist (bijv. 0:00 - Titel - Artiest):",
+        parseChapters: "Analyseren & Toepassen",
+        chapterParseSuccess: "Hoofdstukken toegepast!",
+        chapterParseError: "Kan de lijst niet analyseren.",
+        chapterFormatHint: "Eén regel per hoofdstuk: M:SS - Titel - Artiest"
     },
     sv: {
         loadFromFile: "Ladda från fil",
@@ -406,7 +497,14 @@ export const translations = {
         chapters: "Kapitel",
         holidayMode: "Helgläge aktivt!",
         chapter: "Kapitel",
-        glassMode: "Glasmode"
+        glassMode: "Glasmode",
+        supportedFormats: "Formater",
+        timestampInput: "Lägg till kapitel",
+        pasteTracklist: "Klistra in din spellista (t.ex. 0:00 - Titel - Artist):",
+        parseChapters: "Analysera & Tillämpa",
+        chapterParseSuccess: "Kapitel tillämpade!",
+        chapterParseError: "Kunde inte analysera listan.",
+        chapterFormatHint: "En rad per kapitel: M:SS - Titel - Artist"
     },
     pl: {
         loadFromFile: "Wczytaj z pliku",
@@ -435,6 +533,13 @@ export const translations = {
         chapters: "Rozdziały",
         holidayMode: "Tryb świąteczny aktywny!",
         chapter: "Rozdział",
-        glassMode: "Tryb szkła"
+        glassMode: "Tryb szkła",
+        supportedFormats: "Obsługiwane formaty",
+        timestampInput: "Dodaj rozdziały",
+        pasteTracklist: "Wklej swoją listę utworów (np. 0:00 - Tytuł - Artysta):",
+        parseChapters: "Analizuj i zastosuj",
+        chapterParseSuccess: "Rozdziały zastosowane!",
+        chapterParseError: "Nie udało się przeanalizować listy.",
+        chapterFormatHint: "Jeden wiersz na rozdział: M:SS - Tytuł - Artysta"
     }
 };

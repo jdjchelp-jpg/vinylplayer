@@ -2011,3 +2011,117 @@ input:checked+.slider:before {
         border-left: none;
     }
 }
+
+/* =====================================================
+   SUPPORTED FORMATS MODAL
+   ===================================================== */
+
+.formats-modal-content {
+    max-width: 560px;
+}
+
+.formats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.formats-grid::-webkit-scrollbar {
+    width: 4px;
+}
+
+.formats-grid::-webkit-scrollbar-thumb {
+    background: var(--clr-border);
+    border-radius: 2px;
+}
+
+.formats-category {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+}
+
+.formats-category-title {
+    margin: 0 0 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--clr-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.formats-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.format-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--clr-text-muted);
+    letter-spacing: 0.02em;
+    transition: var(--transition-fast);
+}
+
+.format-badge:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--clr-text);
+}
+
+.format-badge.recommended {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: rgba(34, 197, 94, 0.9);
+    font-weight: 600;
+}
+
+/* =====================================================
+   TIMESTAMP / CHAPTER INPUT MODAL
+   ===================================================== */
+
+.timestamp-modal-content {
+    max-width: 520px;
+}
+
+.timestamp-textarea {
+    width: 100% !important;
+    min-height: 200px;
+    max-height: 300px;
+    resize: vertical;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin-bottom: 12px !important;
+}
+
+.timestamp-hint {
+    font-size: 0.78rem;
+    color: var(--clr-text-muted);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.timestamp-hint code {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+}
+
+/* Glass mode overrides */
+.glass-mode .formats-category,
+.glass-mode .format-badge {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}

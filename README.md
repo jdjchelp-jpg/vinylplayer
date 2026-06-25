@@ -1,14 +1,12 @@
 # BluePeak Vinyl Player 🎵
 
-A web-based vinyl record player interface that streams music from YouTube, local files, and direct audio URLs. Designed with a focus on privacy, offline capability, and a retro listening experience.
+A web-based vinyl record player interface that plays local files and direct audio URLs. Designed with a focus on privacy, offline capability, and a retro listening experience.
 
 ![Vinyl Player](images/screenshot-extra-3.png)
 
 ## 🌐 Try It Online
 
 The app is hosted at: **https://bluepeakvinylplayer.vercel.app/**
-
-> ⚠️ **Note:** The hosted version may encounter browser security restrictions (CORS, iframe origin mismatches, GDPR consent blocks) that prevent YouTube video playback. For the best experience, **run this project locally**.
 
 ## 🚀 How to Run Locally
 
@@ -43,19 +41,6 @@ php -S localhost:8080
 
 ## 🔧 Architecture & How It Works
 
-### Audio-First Strategy
-
-This project uses an **Audio-First** strategy to avoid the common `postMessage` origin errors associated with the YouTube IFrame API.
-
-**The Problem:** Browsers block communication between your domain and YouTube's embedded widgets due to strict security policies (Cross-Origin Isolation, Consent Mode, and browser extension interference). This causes the "postMessage" errors you may see in the console.
-
-**The Solution:** Instead of embedding a YouTube iframe (which requires complex permission handshakes), the app now:
-
-1. **Prioritizes Direct Audio Extraction** — Uses public APIs (like Cobalt) to fetch direct MP3 streams, avoiding the iframe entirely
-2. **Bypasses Iframes** — No `postMessage` needed; just standard HTTP requests
-3. **Fallback Chain** — If audio extraction fails, falls back to the YouTube iframe with consent handling
-4. **Consent Modal** — First-time users see a consent modal; choices are remembered in localStorage
-
 ### Project Structure
 
 ```
@@ -66,7 +51,6 @@ This project uses an **Audio-First** strategy to avoid the common `postMessage` 
 │   ├── main.js             # App bootstrap
 │   ├── services/
 │   │   ├── VinylPlayer.js  # Core player logic, UI, queue management
-│   │   ├── YouTubeService.js # YouTube iframe API + audio fallback
 │   │   ├── PlaylistManager.js # Queue/playlist data management
 │   │   ├── ExportEngine.js # 4K video export
 │   │   ├── HolidayManager.js # Holiday-themed music detection
@@ -80,16 +64,16 @@ This project uses an **Audio-First** strategy to avoid the common `postMessage` 
 
 ### Key Features
 
-- **🎵 Multiple Sources** — YouTube URLs, local files (MP3, FLAC, WAV, OGG, M4B), direct audio URLs
+- **🎵 Multiple Sources** — Local files, direct audio URLs
 - **💿 Vinyl Record UI** — Animated vinyl with rotating cover art, draggable tone arm
 - **📋 Queue Management** — Drag-and-drop reorder, remove tracks, persistent queue
 - **🎚️ Audio Processing** — Built-in FFmpeg for metadata extraction, MP3 conversion, trimming
 - **📺 4K Video Export** — Export animated vinyl visualizations with audio
-- **🔒 Privacy Mode** — Audio-only playback via Cobalt API (no YouTube cookies/tracking)
 - **🌍 i18n** — 15 languages supported
 - **📱 PWA Ready** — Install as a standalone app on desktop/mobile
 - **🔄 Playback Speed** — 0.25x to 5x speed control
-- **📖 Chapter Support** — Audiobook chapter navigation for M4B files
+- **📖 Chapter Support** — Audiobook chapter navigation for M4B files, manual timestamp tracklists
+- **✅ 80+ Format Support** — Comprehensive audio & video format acceptance with validation
 
 ## 🛠️ Development
 
@@ -102,29 +86,40 @@ This project uses an **Audio-First** strategy to avoid the common `postMessage` 
 
 ```bash
 # Clone the repo
-git clone <your-repo-url>
+git clone <https://github.com/jdjchelp-jpg/vinylplayer>
 cd vinyl-player
 
 # Serve locally
 npx http-server . -p 8080 -c-1
 ```
 
-### Troubleshooting YouTube Playback
-
-If YouTube tracks fail to play:
-
-1. **Check the browser console** (F12 → Console) for error messages
-2. **Try incognito/private mode** — Browser extensions (especially media downloaders) often break YouTube's iframe API
-3. **Run locally** — `npx http-server . -p 8080` eliminates most CORS and origin issues
-4. **Disable web security** (dev only) — Launch Chrome with:
-   ```bash
-   chrome.exe --disable-web-security --user-data-dir="C:/ChromeDevSession"
-   ```
-   ⚠️ Only do this in a dedicated test session. Do not browse normally with this flag.
-
 ## 📜 License
 
 This project is licensed under the **GNU General Public License v3.0** (GPLv3). See the [LICENSE](LICENSE) file for details.
+
+### Supported Formats
+
+The player accepts a wide range of audio and video file formats. Paste a timestamp tracklist to add chapter navigation to any track.
+
+| Category | Formats |
+|----------|----------|
+| **Audio (Recommended)** | `.mp3` `.flac` `.wav` `.ogg` `.opus` `.m4a` `.aac` |
+| **Audio (Extended)** | `.aiff` `.aif` `.wma` `.alac` `.ac3` `.ape` `.wv` `.tta` `.mpc` `.mp2` |
+| **Audiobooks** | `.m4b` `.m4p` `.mid` `.midi` `.mod` `.s3m` `.xm` `.it` |
+| **Video (Recommended)** | `.mp4` `.webm` `.mkv` `.mov` `.m4v` |
+| **Video (Extended)** | `.avi` `.wmv` `.ts` `.mts` `.m2ts` `.vob` `.mpg` `.mpeg` `.ogv` `.flv` `.3gp` `.asf` `.rm` `.rmvb` `.divx` `.xvid` `.bik` `.nsv` `.wtv` |
+
+### Adding Chapters via Timestamps
+
+Load a track, then use **Add Chapters** from the menu to paste a tracklist:
+
+```
+0:00 -  Song Title - Artist Name
+4:28 -  Song Title - Artist Name
+6:36 -  Song Title - Artist Name
+```
+
+Chapters will appear in the chapter menu and chapter pill, letting you jump between songs in a mix.
 
 ## 🤝 Contributing
 
@@ -132,7 +127,6 @@ Contributions are welcome! Feel free to:
 
 - Open an issue for bugs or feature requests
 - Submit a pull request with improvements
-- Add more audio extraction proxies to `YouTubeService.js`
 - Improve the UI or add new visual effects
 
 ## 🔗 Links

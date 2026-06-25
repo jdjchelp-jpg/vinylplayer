@@ -4,6 +4,20 @@ import { HolidayManager } from './HolidayManager.js';
 
 import { ExportEngine } from './ExportEngine.js';
 
+// ── Supported file extensions (lowercase, no dots) ──
+const SUPPORTED_AUDIO = new Set([
+    'mp3','m4a','flac','wav','wma','ogg','oga','opus','alac','aiff','aif',
+    'aac','ac3','ape','wv','tta','mpc','mp2','m4b','m4p',
+    'mid','midi','mod','s3m','xm','it','3ga','aa','aax','amr'
+]);
+const SUPPORTED_VIDEO = new Set([
+    'mp4','m4v','mkv','mov','webm','avi','wmv','ts','mts','m2ts',
+    'vob','mpg','mpeg','m1v','m2v','ogv','flv','f4v','swf',
+    '3gp','3g2','asf','rm','rmvb','divx','xvid','amv','bik',
+    'nsv','dvr-ms','wtv'
+]);
+const SUPPORTED_EXTENSIONS = new Set([...SUPPORTED_AUDIO, ...SUPPORTED_VIDEO]);
+
 export class VinylPlayer {
     constructor() {
         console.log("VinylPlayer constructor started");
@@ -228,6 +242,21 @@ export class VinylPlayer {
         if (this.elements.currentTime) {
             this.elements.currentTime.textContent = this.formatTime(current);
         }
+
+        // Auto-update chapter pill as playback crosses chapter boundaries
+        if (this.chapters.length > 1 && !isNaN(current) && this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
+            let idx = 0;
+            for (let i = this.chapters.length - 1; i >= 0; i--) {
+                if (current >= this.chapters[i].startSeconds) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx !== this.currentChapterIndex) {
+                this.currentChapterIndex = idx;
+                this.updateChapterPill(this.chapters[idx].title);
+            }
+        }
     }
 
     onLocalLoadedMetadata() {
@@ -409,6 +438,13 @@ export class VinylPlayer {
             });
         }
 
+        // Volume Slider
+        if (this.elements.volumeSlider) {
+            this.elements.volumeSlider.addEventListener('input', (e) => {
+                this.setVolume(parseInt(e.target.value, 10));
+            });
+        }
+
         // Notification
         if (this.elements.notificationClose) {
             this.elements.notificationClose.addEventListener('click', () => {
@@ -453,6 +489,43 @@ export class VinylPlayer {
         if (this.elements.renderModeToggle) {
             this.elements.renderModeToggle.addEventListener('change', () => {
                 this.updateSettings();
+            });
+        }
+
+        // Supported Formats button
+        const formatsBtn = document.getElementById('supportedFormatsBtn');
+        if (formatsBtn) {
+            formatsBtn.addEventListener('click', () => {
+                this.elements.menuItems.classList.remove('active');
+                document.getElementById('formatsModal').style.display = 'flex';
+            });
+        }
+        const formatsCloseBtn = document.getElementById('formatsModalCloseBtn');
+        if (formatsCloseBtn) {
+            formatsCloseBtn.addEventListener('click', () => {
+                document.getElementById('formatsModal').style.display = 'none';
+            });
+        }
+
+        // Timestamp / Chapter Input button
+        const timestampBtn = document.getElementById('timestampBtn');
+        if (timestampBtn) {
+            timestampBtn.addEventListener('click', () => {
+                this.elements.menuItems.classList.remove('active');
+                const modal = document.getElementById('timestampModal');
+                if (modal) modal.style.display = 'flex';
+                const textarea = document.getElementById('timestampInput');
+                if (textarea) textarea.value = '';
+            });
+        }
+        const timestampParseBtn = document.getElementById('timestampParseBtn');
+        if (timestampParseBtn) {
+            timestampParseBtn.addEventListener('click', () => this.parseTimestampInput());
+        }
+        const timestampCancelBtn = document.getElementById('timestampCancelBtn');
+        if (timestampCancelBtn) {
+            timestampCancelBtn.addEventListener('click', () => {
+                document.getElementById('timestampModal').style.display = 'none';
             });
         }
 
@@ -510,29 +583,45 @@ export class VinylPlayer {
     handleFileUpload(files) {
         if (!files || files.length === 0) return;
 
+        const rejectedFiles = [];
         const newTracks = [];
+
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            const isVideo = file.type.startsWith('video/');
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            if (!SUPPORTED_EXTENSIONS.has(ext)) {
+                rejectedFiles.push(file.name);
+                continue;
+            }
+
+            const isVideo = SUPPORTED_VIDEO.has(ext) || file.type.startsWith('video/');
 
             newTracks.push({
                 title: file.name,
                 isVideo: isVideo,
                 isLocal: true,
                 file: file
-                // source is created in PlaylistManager.getCurrentTrack when needed
             });
         }
 
-        this.playlistManager.addTracks(newTracks);
-        this.renderQueue();
+        if (rejectedFiles.length > 0) {
+            const names = rejectedFiles.length <= 3
+                ? rejectedFiles.join(', ')
+                : `${rejectedFiles.slice(0, 2).join(', ')} and ${rejectedFiles.length - 2} more`;
+            this.showNotification(`Unsupported format: ${names}`, 'error');
+        }
 
-        // Auto play first track
-        const firstTrack = this.playlistManager.getCurrentTrack();
-        if (firstTrack) {
-            this.playTrack(firstTrack);
-        } else {
-            this.showNotification(translations[this.currentLang].trackAdded, "success");
+        if (newTracks.length > 0) {
+            this.playlistManager.addTracks(newTracks);
+            this.renderQueue();
+
+            const firstTrack = this.playlistManager.getCurrentTrack();
+            if (firstTrack) {
+                this.playTrack(firstTrack);
+            } else {
+                this.showNotification(translations[this.currentLang].trackAdded, "success");
+            }
         }
     }
 
@@ -688,20 +777,20 @@ export class VinylPlayer {
     // Extracted chapter logic
     loadChapters(track) {
         this.chapters = [];
-        // Detect .m4b audiobook and show chapter pill immediately at Chapter 1
-        const isM4b = track.file && track.file.name && track.file.name.toLowerCase().endsWith('.m4b');
-        if (isM4b) {
-            this.updateChapterPill('Chapter 1');
-        } else {
-            this.updateChapterPill(null);
-        }
+        this.updateChapterPill(null);
         if (track.file) {
             this.extractChapters(track.file)
                 .then(chapters => {
+                    // Filter out ghost single chapters (e.g. auto-generated WebM "Chapter 1")
+                    if (chapters.length <= 1) {
+                        console.log(`Ignoring single auto-generated chapter`);
+                        this.chapters = [];
+                        return;
+                    }
                     this.chapters = chapters;
-                    if (this.chapters.length > 0) {
-                        console.log(`Found ${this.chapters.length} chapters`);
-                        // Update chapter pill with first chapter title
+                    console.log(`Found ${this.chapters.length} chapters`);
+                    // Only show chapter pill if chapters toggle is enabled
+                    if (this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
                         this.currentChapterIndex = 0;
                         this.updateChapterPill(this.chapters[0].title || 'Chapter 1');
                     }
@@ -1061,8 +1150,13 @@ export class VinylPlayer {
             this.log("Initializing FFmpeg...");
             const { fetchFile } = FFmpegUtil;
 
+            // Create FFmpeg instance if it doesn't exist
             if (!this.ffmpeg) {
                 this.ffmpeg = new FFmpegWASM.FFmpeg();
+            }
+
+            // Load FFmpeg core if not yet loaded
+            if (!this.ffmpeg.loaded) {
                 this.ffmpeg.on("log", ({ message }) => {
                     // Filter out noisy logs, keep important ones
                     if (message.includes("Chapter") || message.includes("Duration") || message.includes("Error")) {
@@ -1070,7 +1164,7 @@ export class VinylPlayer {
                     }
                 });
 
-                // Load FFmpeg from CDN
+                // Load FFmpeg core
                 await this.ffmpeg.load({
                     coreURL: "wasm/ffmpeg-core.js",
                     wasmURL: "wasm/ffmpeg-core.wasm",
@@ -2011,6 +2105,88 @@ export class VinylPlayer {
             this._ffmpegSetStatus('Error: ' + err.message);
             this.showNotification('Trim failed: ' + err.message, 'error');
         }
+    }
+
+    // ─────────────────────────────────────────────────
+    // TIMESTAMP / CHAPTER INPUT
+    // ─────────────────────────────────────────────────
+
+    /**
+     * Parse pasted timestamp text into chapters and apply to current track.
+     * Accepts lines like:
+     *   0:00 - Song Title - Artist Name
+     *   4:28 - Song Title - Artist Name & Artist Name
+     * Also supports:
+     *   0:00 Song Title - Artist Name
+     *   0:00 Song Title
+     *   [0:00] Song Title - Artist Name
+     */
+    parseTimestampInput() {
+        const textarea = document.getElementById('timestampInput');
+        const text = textarea ? textarea.value.trim() : '';
+        const t = translations[this.currentLang];
+
+        if (!text) {
+            this.showNotification(t.chapterParseError, 'error');
+            return;
+        }
+
+        const lines = text.split('\n').filter(l => l.trim());
+        const chapters = [];
+
+        // Match: optional bracket, MM:SS or HH:MM:SS, optional bracket, separator, title/artist
+        const timeRegex = /^\[?(\d{1,3}):(\d{2})(?::(\d{2}))?\]?\s*[-\u2013\u2014|:]\s*(.+)$/;
+
+        for (const line of lines) {
+            const match = timeRegex.exec(line.trim());
+            if (match) {
+                let seconds = 0;
+                if (match[3]) {
+                    // HH:MM:SS
+                    seconds = parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60 + parseInt(match[3], 10);
+                } else {
+                    // MM:SS
+                    seconds = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+                }
+                const rawTitle = match[4].trim();
+                // Split on ' - ' to get artist if present
+                const parts = rawTitle.split(/\s+-\s+/);
+                const title = parts.length > 1 ? `${parts[0]} - ${parts[1]}` : parts[0];
+
+                chapters.push({
+                    index: chapters.length + 1,
+                    title: title,
+                    startSeconds: seconds
+                });
+            }
+        }
+
+        if (chapters.length === 0) {
+            this.showNotification(t.chapterParseError, 'error');
+            return;
+        }
+
+        // Sort by start time
+        chapters.sort((a, b) => a.startSeconds - b.startSeconds);
+        // Re-number
+        chapters.forEach((ch, i) => { ch.index = i + 1; });
+
+        // Apply to current track
+        this.chapters = chapters;
+        this.currentChapterIndex = 0;
+        this.updateChapterPill(chapters[0].title || 'Chapter 1');
+
+        // Enable chapters toggle if available
+        if (this.elements.showChaptersToggle) {
+            this.elements.showChaptersToggle.checked = true;
+            this.updateSettings();
+        }
+
+        // Close modal
+        document.getElementById('timestampModal').style.display = 'none';
+
+        this.showNotification(`${t.chapterParseSuccess} (${chapters.length} chapters)`, 'success');
+        console.log('Parsed chapters:', chapters);
     }
 
     /** HTML-escape helper to avoid XSS in queue titles. */
