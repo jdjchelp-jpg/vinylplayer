@@ -277,17 +277,7 @@ export class VinylPlayer {
             });
         }
 
-        // Description Toggle (Question Mark) / Chapter Toggle
-        if (this.elements.descToggle) {
-            this.elements.descToggle.addEventListener('click', () => {
-                if (this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
-                    this.toggleChapterMenu();
-                } else {
-                    const descItems = document.querySelector('.desc-items');
-                    if (descItems) descItems.classList.toggle('active');
-                }
-            });
-        }
+        // desc-toggle (?) is now combined into song-info-capsule — no separate click handler needed
 
         // Chapter Menu Close
         if (this.elements.chapterCloseBtn) {
@@ -593,7 +583,18 @@ export class VinylPlayer {
             });
         }
 
-        // Click on chapter pill cycles to next chapter
+        // Click on the whole song-info-capsule toggles chapter menu (when chapters enabled)
+        if (this.elements.songInfoCapsule) {
+            this.elements.songInfoCapsule.addEventListener('click', (e) => {
+                // Don't trigger if clicking the chapter context text (it has its own handler)
+                if (e.target === this.elements.songContextText) return;
+                if (this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
+                    this.toggleChapterMenu();
+                }
+            });
+        }
+
+        // Click on chapter context text cycles to next chapter
         if (this.elements.songContextText) {
             this.elements.songContextText.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1097,12 +1098,13 @@ export class VinylPlayer {
                 this.elements.lyricsToggle.style.display = 'block';
             }
         }
-        if (this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
-            this.elements.descToggle.classList.add('long-mode');
-            this.elements.descToggle.setAttribute('data-chapter', translations[this.currentLang].chapter + " 1");
-        } else {
-            this.elements.descToggle.classList.remove('long-mode');
-            this.elements.descToggle.removeAttribute('data-chapter');
+        // desc-toggle (?) is now combined into song-info-capsule — add visual indicator when chapters on
+        if (this.elements.songInfoCapsule) {
+            if (this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
+                this.elements.songInfoCapsule.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            } else {
+                this.elements.songInfoCapsule.style.borderColor = '';
+            }
         }
         if (this.isPlaying && this.isVideo) {
             this.toggleVideoMode(true);
@@ -1458,7 +1460,6 @@ export class VinylPlayer {
                     this.localAudio.currentTime = chapter.startSeconds;
                 }
                 this.elements.chapterMenu.style.display = 'none';
-                this.elements.descToggle.setAttribute('data-chapter', chapter.title);
                 this.currentChapterIndex = chapter.index - 1;
                 this.updateChapterPill(chapter.title);
             });
@@ -2238,10 +2239,7 @@ export class VinylPlayer {
         this.currentChapterIndex = nextIdx;
         this.updateChapterPill(nextChapter.title);
 
-        // Update desc toggle badge
-        if (this.elements.descToggle) {
-            this.elements.descToggle.setAttribute('data-chapter', nextChapter.title);
-        }
+        // desc-toggle is now combined — no badge update needed
     }
 
     /** HTML-escape helper to avoid XSS in queue titles. */

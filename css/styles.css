@@ -621,12 +621,14 @@ input[type="file"] {
     position: absolute;
     bottom: 130px;
     right: -225px;
-    z-index: 1000;
-    /* display: flex;
-    align-items: center; */
+    z-index: 100;
     gap: 10px;
     rotate: -90deg;
-    z-index: -1;
+    pointer-events: auto;
+}
+
+#volumeSlider {
+    pointer-events: auto;
 }
 
 #volumeSlider {
@@ -1087,19 +1089,7 @@ input:checked+.slider:before {
     box-shadow: 0 0 0 3px var(--clr-accent-glow);
 }
 
-/* Long Question Mark (Chapter Mode) */
-.desc-toggle.long-mode {
-    width: auto;
-    padding: 0 15px;
-    border-radius: 20px;
-    aspect-ratio: auto;
-}
 
-.desc-toggle.long-mode::after {
-    content: " / " attr(data-chapter);
-    font-size: 14px;
-    margin-left: 5px;
-}
 
 /* Chapter Menu */
 .chapter-menu {
@@ -1243,8 +1233,7 @@ input:checked+.slider:before {
 }
 
 /* Menu & Desc Toggle Buttons */
-.glass-mode .menu-toggle,
-.glass-mode .desc-toggle {
+.glass-mode .menu-toggle {
     background: rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(16px) saturate(130%);
     -webkit-backdrop-filter: blur(16px) saturate(130%);
@@ -1254,8 +1243,7 @@ input:checked+.slider:before {
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.glass-mode .menu-toggle:hover,
-.glass-mode .desc-toggle:hover {
+.glass-mode .menu-toggle:hover {
     background: rgba(255, 255, 255, 0.12);
     box-shadow:
         0 6px 20px rgba(0, 0, 0, 0.2),
@@ -1879,7 +1867,6 @@ input:checked+.slider:before {
 
 /* Base button styles — forces them to stay perfect circles */
 .desc-container .control-btn,
-.desc-container .desc-toggle,
 .desc-container .lyrics-toggle,
 .desc-container .queue-toggle-btn {
     flex-shrink: 0 !important;
@@ -1901,7 +1888,6 @@ input:checked+.slider:before {
 }
 
 .desc-container .control-btn:hover,
-.desc-container .desc-toggle:hover,
 .desc-container .lyrics-toggle:hover,
 .desc-container .queue-toggle-btn:hover {
     background: rgba(255, 255, 255, 0.15) !important;
@@ -1911,13 +1897,17 @@ input:checked+.slider:before {
 }
 
 .desc-container .control-btn:active,
-.desc-container .desc-toggle:active,
 .desc-container .lyrics-toggle:active,
 .desc-container .queue-toggle-btn:active {
     transform: translateY(0) !important;
 }
 
-/* Combined Song/Chapter Information Capsule */
+/* Hide the desc-toggle (?) button — combined into song-info-capsule */
+.desc-container .desc-toggle {
+    display: none !important;
+}
+
+/* Combined Song/Chapter Information Capsule — also acts as chapter toggle button */
 .song-info-capsule {
     display: flex !important;
     align-items: center !important;
@@ -1934,6 +1924,16 @@ input:checked+.slider:before {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     gap: 0 !important;
+    cursor: pointer !important;
+}
+
+.song-info-capsule:hover {
+    background: rgba(255, 255, 255, 0.09) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.song-info-capsule:active {
+    transform: scale(0.97) !important;
 }
 
 .song-info-separator {
