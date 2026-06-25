@@ -507,6 +507,58 @@
         </div>
     </div>
 
+    <!-- Export Video Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content export-modal-content">
+            <h2>&#127916; Export Video</h2>
+            <p class="ffmpeg-hint">Choose resolution and start exporting your playlist as a video file.</p>
+            <div class="export-resolution-grid">
+                <button class="export-res-btn" data-width="854" data-height="480" data-label="480p">
+                    <span class="export-res-label">480p</span>
+                    <span class="export-res-detail">854 &times; 480</span>
+                    <span class="export-res-speed">Fastest</span>
+                </button>
+                <button class="export-res-btn" data-width="1280" data-height="720" data-label="720p">
+                    <span class="export-res-label">720p</span>
+                    <span class="export-res-detail">1280 &times; 720</span>
+                    <span class="export-res-speed">Fast</span>
+                </button>
+                <button class="export-res-btn recommended" data-width="1920" data-height="1080" data-label="1080p">
+                    <span class="export-res-label">1080p</span>
+                    <span class="export-res-detail">1920 &times; 1080</span>
+                    <span class="export-res-speed">Recommended</span>
+                </button>
+                <button class="export-res-btn" data-width="2560" data-height="1440" data-label="1440p">
+                    <span class="export-res-label">1440p</span>
+                    <span class="export-res-detail">2560 &times; 1440</span>
+                    <span class="export-res-speed">High Quality</span>
+                </button>
+                <button class="export-res-btn" data-width="3840" data-height="2160" data-label="4K">
+                    <span class="export-res-label">4K</span>
+                    <span class="export-res-detail">3840 &times; 2160</span>
+                    <span class="export-res-speed">Slow</span>
+                </button>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="exportModalCloseBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Progress Overlay -->
+    <div class="export-progress-overlay" id="exportProgressOverlay" style="display:none;">
+        <div class="export-progress-card">
+            <div class="export-progress-title">&#127916; Exporting Video</div>
+            <div class="export-progress-res" id="exportProgressRes">1080p &bull; 30fps</div>
+            <div class="export-progress-track" id="exportProgressTrack">Track 1/1</div>
+            <div class="export-progress-bar-wrap">
+                <div class="export-progress-bar" id="exportProgressBar"></div>
+            </div>
+            <div class="export-progress-status" id="exportProgressStatus">Preparing...</div>
+            <button class="modal-btn secondary export-cancel-btn" id="exportCancelBtn">Cancel Export</button>
+        </div>
+    </div>
+
     <div class="modal" id="timestampModal">
         <div class="modal-content timestamp-modal-content">
             <h2 data-i18n="timestampInput">Add Chapters</h2>

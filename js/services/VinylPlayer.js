@@ -477,7 +477,26 @@ export class VinylPlayer {
 
         if (this.elements.exportVideoBtn) {
             this.elements.exportVideoBtn.addEventListener('click', () => {
-                this.exportEngine.exportPlaylist();
+                this.elements.menuItems.classList.remove('active');
+                this.exportEngine.showExportModal();
+            });
+        }
+
+        // Export resolution buttons
+        document.querySelectorAll('.export-res-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const width = parseInt(btn.dataset.width, 10);
+                const height = parseInt(btn.dataset.height, 10);
+                const label = btn.dataset.label;
+                this.exportEngine.startExport({ width, height, label });
+            });
+        });
+
+        // Export modal close button
+        const exportCloseBtn = document.getElementById('exportModalCloseBtn');
+        if (exportCloseBtn) {
+            exportCloseBtn.addEventListener('click', () => {
+                document.getElementById('exportModal').style.display = 'none';
             });
         }
 
