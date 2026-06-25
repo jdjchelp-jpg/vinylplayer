@@ -5,7 +5,7 @@ const ASSETS = [
     './css/styles.css',
     './js/main.js',
     './js/services/VinylPlayer.js',
-    './js/services/YouTubeService.js',
+
     './js/services/ExportEngine.js',
     './js/services/PlaylistManager.js',
     './js/services/i18n.js',

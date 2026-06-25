@@ -118,28 +118,5 @@ export class PlaylistManager {
         this.currentTrackIndex = 0;
     }
 
-    // Simple parser for YouTube URLs
-    parseUrl(url) {
-        let videoId = null;
-        let listId = null;
 
-        try {
-            const urlObj = new URL(url);
-            if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
-                if (urlObj.searchParams.has('v')) {
-                    videoId = urlObj.searchParams.get('v');
-                } else if (urlObj.pathname.length > 1) {
-                    videoId = urlObj.pathname.substring(1);
-                }
-
-                if (urlObj.searchParams.has('list')) {
-                    listId = urlObj.searchParams.get('list');
-                }
-            }
-        } catch (e) {
-            console.error("Invalid URL", e);
-        }
-
-        return { videoId, listId };
-    }
 }

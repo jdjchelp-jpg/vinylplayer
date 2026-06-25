@@ -1,19 +1,13 @@
 import { PlaylistManager } from './PlaylistManager.js';
 import { translations } from './i18n.js';
 import { HolidayManager } from './HolidayManager.js';
-import { YouTubeService } from './YouTubeService.js';
+
 import { ExportEngine } from './ExportEngine.js';
 
 export class VinylPlayer {
     constructor() {
         console.log("VinylPlayer constructor started");
         this.playlistManager = new PlaylistManager();
-        this.youTubeService = new YouTubeService(this); // Pass this as dom provider for notifications
-
-        // Proxy player property for backward compatibility (ExportEngine)
-        // ExportEngine asks for this.player.getDuration()
-        // We can make this.player point to youTubeService for simple methods
-        this.player = this.youTubeService;
 
         this.isPlaying = false;
         this.isDragging = false;
@@ -53,7 +47,7 @@ export class VinylPlayer {
             settingsBtn: document.getElementById('settingsBtn'),
             settingsCloseBtn: document.getElementById('settingsCloseBtn'),
 
-            showYouTubeToggle: document.getElementById('showYouTubeToggle'),
+
             showLocalVideoToggle: document.getElementById('showLocalVideoToggle'),
             container: document.querySelector('.container'),
             fileInput: document.getElementById('fileInput'),
@@ -125,7 +119,7 @@ export class VinylPlayer {
 
     init() {
         console.log("VinylPlayer.init() called");
-        // loadYouTubeAPI is handled by YouTubeService constructor
+        // Local-file-only player
         this.setupEventListeners();
         this.setupToneArmDrag();
         this.setupLocalMediaListeners();
@@ -150,68 +144,7 @@ export class VinylPlayer {
         this.restoreGlassMode();
     }
 
-    // Callbacks for YouTubeService
-    onPlayerReady(event, videoData) {
-        console.log("Player Ready", videoData);
-        this.setVolume(this.volume);
 
-        // Always play when the player becomes ready (playTrack was called intentionally)
-        this.youTubeService.play();
-
-        // Re-apply current playback speed (YouTube needs it after player ready)
-        if (this.elements.speedSelect) {
-            const speed = parseFloat(this.elements.speedSelect.value);
-            if (speed !== 1 && this.youTubeService.player && this.youTubeService.player.setPlaybackRate) {
-                this.youTubeService.player.setPlaybackRate(speed);
-            }
-        }
-
-        // Update info if available from ready event
-        if (videoData) {
-            this.elements.textTitle.textContent = videoData.title;
-            this.elements.textAuthor.textContent = videoData.author;
-            this.updateDesc(videoData.author, videoData.title);
-            this.updateSongCapsule(videoData.title);
-            // ponytail: update media session info on ready
-            this.updateMediaSession(videoData);
-        }
-    }
-
-    onPlayerStateChange(event) {
-        if (this.isLocalFile) return;
-
-        if (event.data === 1 /* YT.PlayerState.PLAYING */) {
-            this.isPlaying = true;
-            this.startRotation();
-            this.moveToneArmToRecord();
-            this.startProgressLoop();
-            this.updatePlayButtonIcon(true);
-            // ponytail: sync playback state
-            this.updateMediaSessionPlaybackState('playing');
-
-            // Update metadata again on play to be sure
-            const data = this.youTubeService.getVideoData();
-            if (data) {
-                this.elements.textTitle.textContent = data.title;
-                this.elements.textAuthor.textContent = data.author;
-                this.updateDesc(data.author, data.title);
-                this.updateSongCapsule(data.title);
-                this.updateMediaSession(data);
-            }
-
-        } else if (event.data === 2 /* YT.PlayerState.PAUSED */) {
-            this.isPlaying = false;
-            this.stopRotation();
-            this.updatePlayButtonIcon(false);
-            this.updateMediaSessionPlaybackState('paused');
-        } else if (event.data === 0 /* YT.PlayerState.ENDED */) {
-            this.isPlaying = false;
-            this.stopRotation();
-            this.updatePlayButtonIcon(false);
-            this.updateMediaSessionPlaybackState('none');
-            this.playNext();
-        }
-    }
 
     // Helper to update desc item
     updateDesc(author, title) {
@@ -389,12 +322,6 @@ export class VinylPlayer {
         }
 
         // Settings Toggles
-        if (this.elements.showYouTubeToggle) {
-            this.elements.showYouTubeToggle.addEventListener('change', () => {
-                this.updateSettings();
-            });
-        }
-
         if (this.elements.showLocalVideoToggle) {
             this.elements.showLocalVideoToggle.addEventListener('change', () => {
                 this.updateSettings();
@@ -457,43 +384,6 @@ export class VinylPlayer {
             });
         }
 
-        // YouTube Consent Modal
-
-        this._pendingConsentTrack = null;
-        const consentAcceptBtn = document.getElementById('consentAcceptBtn');
-        const consentPrivacyBtn = document.getElementById('consentPrivacyBtn');
-        const consentCancelBtn = document.getElementById('consentCancelBtn');
-        const youtubeConsentModal = document.getElementById('youtubeConsentModal');
-
-        if (consentAcceptBtn) {
-            consentAcceptBtn.addEventListener('click', () => {
-                localStorage.setItem('ytConsentMode', 'video');
-                youtubeConsentModal.style.display = 'none';
-                if (this._pendingConsentTrack) {
-                    this._launchYouTubePlayer(this._pendingConsentTrack);
-                    this._pendingConsentTrack = null;
-                }
-            });
-        }
-
-        if (consentPrivacyBtn) {
-            consentPrivacyBtn.addEventListener('click', async () => {
-                localStorage.setItem('ytConsentMode', 'privacy');
-                youtubeConsentModal.style.display = 'none';
-                if (this._pendingConsentTrack) {
-                    await this._launchPrivacyAudio(this._pendingConsentTrack);
-                    this._pendingConsentTrack = null;
-                }
-            });
-        }
-
-        if (consentCancelBtn) {
-            consentCancelBtn.addEventListener('click', () => {
-                youtubeConsentModal.style.display = 'none';
-                this._pendingConsentTrack = null;
-            });
-        }
-
         // Playback Controls
         if (this.elements.playBtn) {
             this.elements.playBtn.addEventListener('click', () => this.togglePlay());
@@ -515,9 +405,6 @@ export class VinylPlayer {
                     if (media.duration) {
                         media.currentTime = media.duration * (val / 100);
                     }
-                } else {
-                    const duration = this.youTubeService.getDuration();
-                    this.youTubeService.seekTo(duration * (val / 100));
                 }
             });
         }
@@ -541,21 +428,11 @@ export class VinylPlayer {
                 this.setVolume(Math.max(this.volume - 5, 0));
                 if (this.elements.volumeSlider) this.elements.volumeSlider.value = this.volume;
             } else if (e.code === 'ArrowRight') {
-                if (this.isLocalFile) {
-                    const media = this.isVideo ? this.localVideo : this.localAudio;
-                    media.currentTime += 5;
-                } else {
-                    const current = this.youTubeService.getCurrentTime();
-                    this.youTubeService.seekTo(current + 5);
-                }
+                const media = this.isVideo ? this.localVideo : this.localAudio;
+                media.currentTime += 5;
             } else if (e.code === 'ArrowLeft') {
-                if (this.isLocalFile) {
-                    const media = this.isVideo ? this.localVideo : this.localAudio;
-                    media.currentTime -= 5;
-                } else {
-                    const current = this.youTubeService.getCurrentTime();
-                    this.youTubeService.seekTo(current - 5);
-                }
+                const media = this.isVideo ? this.localVideo : this.localAudio;
+                media.currentTime -= 5;
             }
         });
 
@@ -734,35 +611,19 @@ export class VinylPlayer {
 
         try {
             if (!url.startsWith('http')) {
-                throw new Error(translations[this.currentLang].invalidUrl || 'Please enter a valid URL');
+                throw new Error('Please enter a valid URL');
             }
 
-            const { videoId, listId } = this.playlistManager.parseUrl(url);
-
-            if (listId) {
-                this.showNotification("Playlists are currently limited. Loading single video if present.");
-            }
-
-            if (videoId) {
-                // Add single track
-                this.playlistManager.addToQueue({
-                    id: videoId,
-                    title: 'Loading...',
-                    isVideo: true,
-                    isLocal: false
-                });
-                this.renderQueue();
-
-                if (this.playlistManager.queue.length === 1 || !this.isPlaying) {
-                    const lastIndex = this.playlistManager.queue.length - 1;
-                    this.playlistManager.currentTrackIndex = lastIndex;
-                    this.playTrack(this.playlistManager.queue[lastIndex]);
-                } else {
-                    this.showNotification(translations[this.currentLang].trackAdded, "success");
-                }
-            } else {
-                throw new Error(translations[this.currentLang].invalidUrl || 'Invalid YouTube URL');
-            }
+            // Fetch the audio file from the URL
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
+            
+            const blob = await response.blob();
+            const fileName = url.split('/').pop().split('?')[0] || 'audio.mp3';
+            const file = new File([blob], fileName, { type: blob.type });
+            
+            // Add to playlist and play
+            this.handleFileUpload([file]);
         } catch (error) {
             console.error('Error loading track from URL:', error);
             this.showNotification(
@@ -785,46 +646,32 @@ export class VinylPlayer {
 
         console.log("playTrack called with:", track);
 
-        if (track.isLocal) {
-            this.isLocalFile = true;
-            this.isVideo = track.isVideo;
-            this.currentFile = track.file || null; // for FFmpeg operations
+        // Local file playback only
+        this.isLocalFile = true;
+        this.isVideo = track.isVideo;
+        this.currentFile = track.file || null; // for FFmpeg operations
 
-            this.youTubeService.pause(); // Pause JS player
-
-            // Hide video containers for audio-only local files
-            if (this.isVideo) {
-                this.localVideo.src = track.source;
-                this.localVideo.style.display = this.elements.showLocalVideoToggle.checked ? 'block' : 'none';
-                this.localVideo.classList.remove('hidden-media');
-                const vt = document.getElementById('vinylTrack');
-                if (vt) vt.classList.remove('hidden-media');
-                this.elements.container.classList.remove('audio-mode-active');
-                this.localVideo.play();
-            } else {
-                this.localAudio.src = track.source;
-                this.localVideo.classList.add('hidden-media');
-                const vt = document.getElementById('vinylTrack');
-                if (vt) vt.classList.add('hidden-media');
-                this.elements.container.classList.add('audio-mode-active');
-                this.localAudio.play();
-            }
-
-            this.updateTrackInfo(track);
-            this.loadChapters(track);
-            this.showNotification(translations[this.currentLang].playingTrack, "success");
-
+        // Hide video containers for audio-only local files
+        if (this.isVideo) {
+            this.localVideo.src = track.source;
+            this.localVideo.style.display = this.elements.showLocalVideoToggle.checked ? 'block' : 'none';
+            this.localVideo.classList.remove('hidden-media');
+            const vt = document.getElementById('vinylTrack');
+            if (vt) vt.classList.remove('hidden-media');
+            this.elements.container.classList.remove('audio-mode-active');
+            this.localVideo.play();
         } else {
-            // Fix 4: Try Cobalt audio fallback FIRST (no iframe, no postMessage issues)
-            try {
-                const result = await this.youTubeService.playAudioFallback(track.id);
-                this._playCobaltAudio(track, result);
-            } catch (e) {
-                console.warn("Cobalt audio fallback failed, trying YouTube iframe:", e);
-                // Fall back to existing consent modal flow
-                this._showConsentModal(track);
-            }
+            this.localAudio.src = track.source;
+            this.localVideo.classList.add('hidden-media');
+            const vt = document.getElementById('vinylTrack');
+            if (vt) vt.classList.add('hidden-media');
+            this.elements.container.classList.add('audio-mode-active');
+            this.localAudio.play();
         }
+
+        this.updateTrackInfo(track);
+        this.loadChapters(track);
+        this.showNotification(translations[this.currentLang].playingTrack, "success");
 
         this.renderQueue(); // refresh active highlight
 
@@ -864,21 +711,13 @@ export class VinylPlayer {
     }
 
     play() {
-        if (this.isLocalFile) {
-            const media = this.isVideo ? this.localVideo : this.localAudio;
-            media.play();
-        } else {
-            this.youTubeService.play();
-        }
+        const media = this.isVideo ? this.localVideo : this.localAudio;
+        media.play();
     }
 
     pause() {
-        if (this.isLocalFile) {
-            const media = this.isVideo ? this.localVideo : this.localAudio;
-            media.pause();
-        } else {
-            this.youTubeService.pause();
-        }
+        const media = this.isVideo ? this.localVideo : this.localAudio;
+        media.pause();
     }
 
     togglePlay() {
@@ -902,7 +741,6 @@ export class VinylPlayer {
 
     setVolume(vol) {
         this.volume = vol;
-        this.youTubeService.setVolume(vol);
         this.localAudio.volume = vol / 100;
         this.localVideo.volume = vol / 100;
     }
@@ -912,126 +750,7 @@ export class VinylPlayer {
         this.localAudio.playbackRate = speed;
         // Apply to local video
         this.localVideo.playbackRate = speed;
-        // Apply to YouTube player
-        if (this.youTubeService && this.youTubeService.player && this.youTubeService.player.setPlaybackRate) {
-            this.youTubeService.player.setPlaybackRate(speed);
-        }
         if (!silent) this.showNotification(`Playback speed: ${speed}x`, 'success');
-    }
-
-    // ─────────────────────────────────────────────────
-    // YOUTUBE CONSENT + PRIVACY AUDIO FALLBACK
-    // ─────────────────────────────────────────────────
-
-    /** Show the consent modal before loading a YouTube track */
-    _showConsentModal(track) {
-        const savedConsent = localStorage.getItem('ytConsentMode');
-        if (savedConsent === 'video') {
-            this._launchYouTubePlayer(track);
-            return;
-        }
-        if (savedConsent === 'privacy') {
-            this._launchPrivacyAudio(track);
-            return;
-        }
-        const modal = document.getElementById('youtubeConsentModal');
-        if (!modal) {
-            this._launchYouTubePlayer(track);
-            return;
-        }
-        this._pendingConsentTrack = track;
-        modal.style.display = 'flex';
-    }
-
-    /** Standard YouTube iframe player launch */
-    _launchYouTubePlayer(track) {
-        this.isLocalFile = false;
-        this.isVideo = true;
-        this.currentFile = null;
-        this.isPlaying = true;
-        this.localAudio.pause();
-        this.localVideo.pause();
-        this.localVideo.style.display = 'none';
-        this.localVideo.classList.remove('hidden-media');
-        const vt = document.getElementById('vinylTrack');
-        if (vt) vt.classList.remove('hidden-media');
-        this.elements.container.classList.remove('audio-mode-active');
-
-        this.startRotation();
-        this.moveToneArmToRecord();
-        this.updatePlayButtonIcon(true);
-
-        this.youTubeService.createPlayer(
-            'vinylTrack',
-            track.id,
-            (event, data) => this.onPlayerReady(event, data),
-            (event) => this.onPlayerStateChange(event),
-            () => {
-                this.showNotification('Audio stream failed. The video may not be available.', 'error');
-            }
-        );
-
-        this.showNotification(translations[this.currentLang].playingTrack, "success");
-    }
-
-    /** Privacy audio fallback — bypasses YouTube iframe entirely */
-    async _launchPrivacyAudio(track) {
-        this.showNotification('Fetching privacy audio stream...', 'success');
-        try {
-            const result = await this.youTubeService.playAudioFallback(track.id);
-            this._playCobaltAudio(track, result);
-            this.showNotification('Privacy audio mode active — no YouTube cookies', 'success');
-        } catch (error) {
-            console.error('Privacy audio fallback failed:', error);
-            this.showNotification(
-                'Could not fetch private audio stream. Try the video option instead.',
-                'error'
-            );
-        }
-    }
-
-    /**
-     * Play audio from a Cobalt API result through the local HTML5 audio element.
-     * This avoids loading the YouTube iframe entirely — no postMessage issues, no tracking cookies.
-     */
-    _playCobaltAudio(track, result) {
-        this.isLocalFile = true;
-        this.isVideo = false;
-        this.currentFile = null;
-        this.isPlaying = true;
-
-        this.youTubeService.pause();
-        this.localVideo.pause();
-        this.localVideo.classList.add('hidden-media');
-        const vt = document.getElementById('vinylTrack');
-        if (vt) vt.classList.add('hidden-media');
-        this.elements.container.classList.add('audio-mode-active');
-
-        this.localAudio.src = result.audioUrl;
-        this.localAudio.play();
-
-        // Update track info from metadata
-        if (result.videoData) {
-            this.elements.textTitle.textContent = result.videoData.title;
-            this.elements.textAuthor.textContent = result.videoData.author;
-            this.updateDesc(result.videoData.author, result.videoData.title);
-            this.updateSongCapsule(result.videoData.title);
-            this.updateMediaSession(result.videoData);
-        }
-
-        // Load cover art
-        this.youTubeService.getVideoCoverUrl(track.id).then(url => {
-            this.elements.vinylCover.style.backgroundImage = `url('${url}')`;
-            this.albumCoverImg = new Image();
-            this.albumCoverImg.crossOrigin = "Anonymous";
-            this.albumCoverImg.src = url;
-        });
-
-        this.startRotation();
-        this.moveToneArmToRecord();
-        this.updatePlayButtonIcon(true);
-
-        this.showNotification(translations[this.currentLang].playingTrack, "success");
     }
 
     startRotation() {
@@ -1072,86 +791,63 @@ export class VinylPlayer {
         const trackTitle = (typeof trackOrId === 'object' && trackOrId) ? (trackOrId.title || '') : '';
         this.updateSongCapsule(trackTitle);
 
-        if (this.isLocalFile) {
-            const track = trackOrId;
-            this.elements.textTitle.textContent = track.title;
-            this.elements.textAuthor.textContent = "Local File";
-            this.elements.vinylCover.style.backgroundImage = "url('images/vinyl-cover.png')";
+        const track = trackOrId;
+        this.elements.textTitle.textContent = track.title;
+        this.elements.textAuthor.textContent = "Local File";
+        this.elements.vinylCover.style.backgroundImage = "url('images/vinyl-cover.png')";
 
-            this.updateDesc(this.elements.textAuthor.textContent, track.title);
+        this.updateDesc(this.elements.textAuthor.textContent, track.title);
 
-            // ponytail: Set initial local Media Session state
-            this.updateMediaSession({
-                title: track.title,
-                author: "Local File"
-            });
+        // ponytail: Set initial local Media Session state
+        this.updateMediaSession({
+            title: track.title,
+            author: "Local File"
+        });
 
-            if (track.file) {
-                jsmediatags.read(track.file, {
-                    onSuccess: (tag) => {
-                        const tags = tag.tags;
-                        if (tags.title) this.elements.textTitle.textContent = tags.title;
-                        if (tags.artist) this.elements.textAuthor.textContent = tags.artist;
-                        this.updateDesc(this.elements.textAuthor.textContent, this.elements.textTitle.textContent);
+        if (track.file) {
+            jsmediatags.read(track.file, {
+                onSuccess: (tag) => {
+                    const tags = tag.tags;
+                    if (tags.title) this.elements.textTitle.textContent = tags.title;
+                    if (tags.artist) this.elements.textAuthor.textContent = tags.artist;
+                    this.updateDesc(this.elements.textAuthor.textContent, this.elements.textTitle.textContent);
 
-                        let base64 = null;
-                        if (tags.picture) {
-                            const { data, format } = tags.picture;
-                            let base64String = "";
-                            for (let i = 0; i < data.length; i++) {
-                                base64String += String.fromCharCode(data[i]);
-                            }
-                            base64 = "data:" + format + ";base64," + window.btoa(base64String);
-                            this.elements.vinylCover.style.backgroundImage = `url('${base64}')`;
-                            // Set albumCoverImg for canvas export
-                            this.albumCoverImg = new Image();
-                            this.albumCoverImg.crossOrigin = "Anonymous";
-                            this.albumCoverImg.src = base64;
+                    let base64 = null;
+                    if (tags.picture) {
+                        const { data, format } = tags.picture;
+                        let base64String = "";
+                        for (let i = 0; i < data.length; i++) {
+                            base64String += String.fromCharCode(data[i]);
                         }
+                        base64 = "data:" + format + ";base64," + window.btoa(base64String);
+                        this.elements.vinylCover.style.backgroundImage = `url('${base64}')`;
+                        // Set albumCoverImg for canvas export
+                        this.albumCoverImg = new Image();
+                        this.albumCoverImg.crossOrigin = "Anonymous";
+                        this.albumCoverImg.src = base64;
+                    }
 
-                        if (tags.lyrics) {
-                            const lyricsText = tags.lyrics.lyrics || tags.lyrics;
-                            if (lyricsText && lyricsText.trim().length > 0) {
-                                this.elements.lyricsContent.textContent = lyricsText;
-                                this.elements.lyricsToggle.style.display = 'block';
-                                // Update capsule with title from tags
-                                if (tags.title) {
-                                    this.updateSongCapsule(tags.title);
-                                }
+                    if (tags.lyrics) {
+                        const lyricsText = tags.lyrics.lyrics || tags.lyrics;
+                        if (lyricsText && lyricsText.trim().length > 0) {
+                            this.elements.lyricsContent.textContent = lyricsText;
+                            this.elements.lyricsToggle.style.display = 'block';
+                            // Update capsule with title from tags
+                            if (tags.title) {
+                                this.updateSongCapsule(tags.title);
                             }
                         }
+                    }
 
-                        // ponytail: update media session with extracted tags
-                        this.updateMediaSession({
-                            title: this.elements.textTitle.textContent,
-                            author: this.elements.textAuthor.textContent,
-                            cover: base64
-                        });
-                    },
-                    onError: (error) => console.log('Error reading tags:', error)
-                });
-            }
-        } else {
-            // YouTube
-            // Data is handled async via onPlayerReady/StateChange, but we can set defaults
-            // We can also ask YouTubeService for cover
-            if (typeof trackOrId === 'object' && trackOrId.id) {
-                this.youTubeService.getVideoCoverUrl(trackOrId.id).then(url => {
-                    this.elements.vinylCover.style.backgroundImage = `url('${url}')`;
-
-                    // Keep image for canvas export
-                    this.albumCoverImg = new Image();
-                    this.albumCoverImg.crossOrigin = "Anonymous";
-                    this.albumCoverImg.src = url;
-
-                    // ponytail: update media session with cover image
+                    // ponytail: update media session with extracted tags
                     this.updateMediaSession({
-                        title: this.elements.textTitle.textContent || 'YouTube Video',
-                        author: this.elements.textAuthor.textContent || 'Unknown Artist',
-                        cover: url
+                        title: this.elements.textTitle.textContent,
+                        author: this.elements.textAuthor.textContent,
+                        cover: base64
                     });
-                });
-            }
+                },
+                onError: (error) => console.log('Error reading tags:', error)
+            });
         }
     }
 
@@ -1164,28 +860,7 @@ export class VinylPlayer {
         }
     }
 
-    startProgressLoop() {
-        if (this.progressInterval) clearInterval(this.progressInterval);
-        this.progressInterval = setInterval(() => {
-            if (!this.isPlaying) return;
 
-            if (!this.isLocalFile) {
-                const current = this.youTubeService.getCurrentTime();
-                const total = this.youTubeService.getDuration();
-
-                if (this.elements.progressBar) {
-                    this.elements.progressBar.value = (total > 0) ? (current / total) * 100 : 0;
-                }
-
-                if (this.elements.currentTime) {
-                    this.elements.currentTime.textContent = this.formatTime(current);
-                }
-                if (this.elements.duration) {
-                    this.elements.duration.textContent = this.formatTime(total);
-                }
-            }
-        }, 1000);
-    }
 
     formatTime(seconds) {
         if (!seconds || isNaN(seconds)) return "0:00";
@@ -1196,11 +871,9 @@ export class VinylPlayer {
 
     downloadPlaylist() {
         let content = "Vinyl Player Playlist\n\n";
-        // Check custom queue first
         if (this.playlistManager.queue.length > 0) {
             this.playlistManager.queue.forEach((track, index) => {
-                const url = track.isLocal ? "Local File" : `https://www.youtube.com/watch?v=${track.id}`;
-                content += `${index + 1}. ${track.title || 'Unknown'} - ${url}\n`;
+                content += `${index + 1}. ${track.title || 'Unknown'}\n`;
             });
         }
         else {
@@ -1219,12 +892,9 @@ export class VinylPlayer {
     toggleVideoMode(enable) {
         if (enable) {
             this.elements.container.classList.add('video-mode');
-            // YouTube Video handled mostly by CSS opacity in user's new version?
-            // But we might need to set size if player object supports it?
-            // YouTubeService creates player 0x0.
 
             // Local Video
-            if (this.isLocalFile && this.isVideo) {
+            if (this.isVideo) {
                 if (this.elements.showLocalVideoToggle && this.elements.showLocalVideoToggle.checked) {
                     this.localVideo.style.display = 'block';
                 } else {
@@ -1233,7 +903,7 @@ export class VinylPlayer {
             }
         } else {
             this.elements.container.classList.remove('video-mode');
-            if (this.isLocalFile && this.isVideo) {
+            if (this.isVideo) {
                 this.localVideo.style.display = 'none';
             }
         }
@@ -1246,16 +916,9 @@ export class VinylPlayer {
         const title = metadata?.title || this.elements.textTitle.textContent || 'Unknown Title';
         const artist = metadata?.author || metadata?.artist || this.elements.textAuthor.textContent || 'Unknown Artist';
 
-        let cover = 'images/favicon.png';
+        let cover = 'images/vinyl-cover.png';
         if (metadata?.cover) {
             cover = metadata.cover;
-        } else if (this.isLocalFile) {
-            cover = 'images/vinyl-cover.png';
-        } else {
-            const currentTrack = this.playlistManager.getCurrentTrack();
-            if (currentTrack?.id) {
-                cover = `https://img.youtube.com/vi/${currentTrack.id}/hqdefault.jpg`;
-            }
         }
 
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -1304,7 +967,7 @@ export class VinylPlayer {
         const fileLabel = document.querySelector('label[class="menu-item"] span');
         if (fileLabel) fileLabel.textContent = t.loadFromFile;
 
-        if (this.elements.urlInput) this.elements.urlInput.placeholder = t.enterUrl;
+        if (this.elements.urlInput) this.elements.urlInput.placeholder = 'Enter audio file URL (MP3, FLAC, etc.)';
         if (document.getElementById('feedbackText')) document.getElementById('feedbackText').placeholder = t.yourFeedback;
     }
     updateSettings() {
@@ -1365,9 +1028,7 @@ export class VinylPlayer {
 
             if (this.playlistManager.queue.length === 0 && !this.isPlaying) {
                 const playlistId = this.holidayManager.getHolidayPlaylist(holiday);
-                if (playlistId) {
-                    this.loadFromUrl(`https://www.youtube.com/playlist?list=${playlistId}`);
-                }
+                // YouTube playlists are no longer supported
             }
         }
     }
@@ -1411,8 +1072,8 @@ export class VinylPlayer {
 
                 // Load FFmpeg from CDN
                 await this.ffmpeg.load({
-                    coreURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js",
-                    wasmURL: "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm",
+                    coreURL: "wasm/ffmpeg-core.js",
+                    wasmURL: "wasm/ffmpeg-core.wasm",
                 });
             }
 
@@ -1670,7 +1331,7 @@ export class VinylPlayer {
                     const media = this.isVideo ? this.localVideo : this.localAudio;
                     media.currentTime = chapter.startSeconds;
                 } else {
-                    this.youTubeService.seekTo(chapter.startSeconds);
+                    this.localAudio.currentTime = chapter.startSeconds;
                 }
                 this.elements.chapterMenu.style.display = 'none';
                 this.elements.descToggle.setAttribute('data-chapter', chapter.title);
@@ -1703,7 +1364,6 @@ export class VinylPlayer {
     }
 
     renderToCanvas(ctx, width, height, time) {
-        // ... (Keep the 4K render logic as implemented previously)
         if (this.elements.renderModeToggle && this.elements.renderModeToggle.checked) {
             ctx.fillStyle = "#191616";
             ctx.fillRect(0, 0, width, height);
@@ -1742,7 +1402,7 @@ export class VinylPlayer {
         ctx.restore();
         ctx.save();
         ctx.translate(centerX + (vinylSize * 0.4), centerY - (vinylSize * 0.4));
-        const duration = this.isLocalFile ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration) : this.youTubeService.getDuration();
+        const duration = this.isVideo ? this.localVideo.duration : this.localAudio.duration;
         const progress = duration > 0 ? time / duration : 0;
         const armAngle = 0.2 + (progress * 0.3);
         ctx.rotate(armAngle);
@@ -1817,49 +1477,6 @@ export class VinylPlayer {
         });
     }
 
-    async loadYouTubeTrackForExport(track) {
-        return new Promise(async (resolve, reject) => {
-            // Fetch video details for title/author
-            const details = await this.youTubeService.getVideoDetails(track.id);
-            if (details) {
-                track.title = details.title;
-                track.author = details.author;
-                this.elements.textTitle.textContent = details.title;
-                this.elements.textAuthor.textContent = details.author;
-                this.updateDesc(details.author, details.title);
-            }
-            const onReady = (event, videoData) => {
-                const duration = this.youTubeService.getDuration();
-                track.duration = duration;
-                this.youTubeService.getVideoCoverUrl(track.id)
-                    .then(url => {
-                        this.albumCoverImg = new Image();
-                        this.albumCoverImg.crossOrigin = "Anonymous";
-                        this.albumCoverImg.onload = () => resolve(duration);
-                        this.albumCoverImg.onerror = () => resolve(duration);
-                        this.albumCoverImg.src = url;
-                    })
-                    .catch(err => {
-                        console.warn('Failed to get cover for YouTube video', err);
-                        resolve(duration);
-                    });
-            };
-            const onStateChange = (event) => {
-                // ignore
-            };
-            this.isLocalFile = false;
-            this.isVideo = true;
-            this.youTubeService.createPlayer('vinylTrack', track.id, onReady, onStateChange, () => {
-                reject(new Error('YouTube audio stream failed for video: ' + track.id));
-            });
-            setTimeout(() => {
-                if (track.duration === undefined) {
-                    reject(new Error('YouTube load timeout for video: ' + track.id));
-                }
-            }, 30000);
-        });
-    }
-
     async prepareTrackForExport(track) {
         // Cleanup previous track if any
         if (this.currentExportTrack && this.currentExportTrack !== track) {
@@ -1868,62 +1485,49 @@ export class VinylPlayer {
         this.currentExportTrack = track;
         this.albumCoverImg = null; // reset for this track
 
-        if (track.isLocal) {
-            this.isLocalFile = true;
-            this.isVideo = track.isVideo;
-            // Ensure source blob URL
-            if (!track.source && track.file) {
-                track.source = URL.createObjectURL(track.file);
-            }
-            const media = track.isVideo ? this.localVideo : this.localAudio;
-            // Pause and clear any previous source
-            media.pause();
-            media.src = track.source;
-            // Wait for metadata
-            await new Promise((resolve, reject) => {
-                const onLoaded = () => resolve();
-                const onError = (e) => reject(e);
-                media.addEventListener('loadedmetadata', onLoaded, { once: true });
-                media.addEventListener('error', onError, { once: true });
-            });
-            track.duration = media.duration;
-            // Set default author if not set
-            if (!track.author) {
-                track.author = "Local File";
-            }
-            // Update UI initially with file name and default author
-            this.elements.textTitle.textContent = track.title;
-            this.elements.textAuthor.textContent = track.author;
-            this.updateDesc(this.elements.textAuthor.textContent, this.elements.textTitle.textContent);
-            // Load tags to possibly override title/author and get cover
-            await this.loadAlbumCoverFromFile(track.file, track);
-        } else {
-            // YouTube track
-            await this.loadYouTubeTrackForExport(track);
+        // Local file only
+        this.isLocalFile = true;
+        this.isVideo = track.isVideo;
+        // Ensure source blob URL
+        if (!track.source && track.file) {
+            track.source = URL.createObjectURL(track.file);
         }
+        const media = track.isVideo ? this.localVideo : this.localAudio;
+        // Pause and clear any previous source
+        media.pause();
+        media.src = track.source;
+        // Wait for metadata
+        await new Promise((resolve, reject) => {
+            const onLoaded = () => resolve();
+            const onError = (e) => reject(e);
+            media.addEventListener('loadedmetadata', onLoaded, { once: true });
+            media.addEventListener('error', onError, { once: true });
+        });
+        track.duration = media.duration;
+        // Set default author if not set
+        if (!track.author) {
+            track.author = "Local File";
+        }
+        // Update UI initially with file name and default author
+        this.elements.textTitle.textContent = track.title;
+        this.elements.textAuthor.textContent = track.author;
+        this.updateDesc(this.elements.textAuthor.textContent, this.elements.textTitle.textContent);
+        // Load tags to possibly override title/author and get cover
+        await this.loadAlbumCoverFromFile(track.file, track);
     }
 
     async captureTrackAudio(track) {
         const sampleRate = 48000;
         let audioBuffer;
-        if (track.isLocal) {
-            // Fetch the audio file as array buffer
-            const response = await fetch(track.source);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
-            try {
-                audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            } catch (e) {
-                throw new Error('Failed to decode audio: ' + e);
-            } finally {
-                audioCtx.close();
-            }
-        } else {
-            // YouTube: generate silent audio buffer
-            const numSamples = Math.floor(track.duration * sampleRate);
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
-            audioBuffer = audioCtx.createBuffer(2, numSamples, sampleRate);
-            // Silent by default
+        // Fetch the audio file as array buffer
+        const response = await fetch(track.source);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+        try {
+            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        } catch (e) {
+            throw new Error('Failed to decode audio: ' + e);
+        } finally {
             audioCtx.close();
         }
         // Ensure exact sample count matches track.duration * sampleRate
@@ -2053,15 +1657,12 @@ export class VinylPlayer {
             item.draggable = true;
             item.dataset.index = idx;
 
-            const isYt = !track.isLocal;
-            const subtitle = isYt ? 'YouTube' : (track.isVideo ? 'Video' : 'Audio');
+            const subtitle = track.isVideo ? 'Video' : 'Audio';
 
             // ponytail: duration shown if media element has it for current track, else '—'
             let duration = '—';
             if (idx === currentIdx) {
-                const secs = this.isLocalFile
-                    ? (this.isVideo ? this.localVideo.duration : this.localAudio.duration)
-                    : this.youTubeService.getDuration();
+                const secs = this.isVideo ? this.localVideo.duration : this.localAudio.duration;
                 if (secs && !isNaN(secs)) duration = this.formatTime(secs);
             }
 
@@ -2234,8 +1835,8 @@ export class VinylPlayer {
         });
 
         await this.ffmpeg.load({
-            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-            wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
+            coreURL: 'wasm/ffmpeg-core.js',
+            wasmURL: 'wasm/ffmpeg-core.wasm',
         });
 
         this.ffmpegLoaded = true;

@@ -892,58 +892,7 @@ input[type="file"] {
     background: rgba(255, 255, 255, 0.12);
 }
 
-/* Consent Modal Styles */
-.consent-message {
-    color: var(--clr-text-muted);
-    font-size: 0.92rem;
-    line-height: 1.5;
-    margin: 0 0 20px;
-    text-align: center;
-}
 
-.consent-options {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.consent-btn-full {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--clr-accent);
-    color: white;
-}
-
-.consent-btn-full:hover {
-    filter: brightness(1.15);
-    box-shadow: 0 4px 16px var(--clr-accent-glow);
-}
-
-.consent-btn-privacy {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    color: #93c5fd;
-}
-
-.consent-btn-privacy:hover {
-    background: rgba(59, 130, 246, 0.35);
-    border-color: rgba(59, 130, 246, 0.6);
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
-}
-
-/* Glass mode consent buttons */
-.glass-mode .consent-btn-privacy {
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.25);
-}
-
-.glass-mode .consent-btn-privacy:hover {
-    background: rgba(59, 130, 246, 0.2);
-}
 
 /* Settings Modal Styles */
 .setting-item {
