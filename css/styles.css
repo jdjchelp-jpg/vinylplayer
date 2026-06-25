@@ -155,6 +155,7 @@ input[type="file"] {
     transform: translate(-50%, -50%) scale(0.95);
     border-radius: 50%;
     overflow: hidden;
+    clip-path: circle(50%);
     background-size: cover !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
@@ -1873,6 +1874,7 @@ input:checked+.slider:before {
     width: auto !important;
     height: auto !important;
     z-index: 999 !important;
+    max-width: calc(100vw - 50px) !important;
 }
 
 /* Base button styles — forces them to stay perfect circles */
@@ -1917,7 +1919,7 @@ input:checked+.slider:before {
 
 /* Combined Song/Chapter Information Capsule */
 .song-info-capsule {
-    display: inline-flex !important;
+    display: flex !important;
     align-items: center !important;
     height: 38px !important;
     padding: 0 16px !important;
@@ -1926,11 +1928,11 @@ input:checked+.slider:before {
     background: rgba(255, 255, 255, 0.03) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
-    max-width: 280px !important;
+    max-width: 50vw !important;
     overflow: hidden !important;
     white-space: nowrap !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    flex-shrink: 1 !important;
+    flex: 1 1 auto !important;
     min-width: 0 !important;
     gap: 0 !important;
 }
@@ -1951,6 +1953,7 @@ input:checked+.slider:before {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     min-width: 0 !important;
+    display: block !important;
 }
 
 /* The text element inside the pill */
@@ -1963,6 +1966,7 @@ input:checked+.slider:before {
     overflow: hidden !important;
     white-space: nowrap !important;
     min-width: 0 !important;
+    display: block !important;
 }
 
 /* Ensure desc-items (dropdown) stays below everything */
