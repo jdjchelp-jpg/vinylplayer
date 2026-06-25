@@ -1915,7 +1915,7 @@ input:checked+.slider:before {
     transform: translateY(0) !important;
 }
 
-/* The New Dedicated Song/Chapter Information Capsule */
+/* Combined Song/Chapter Information Capsule */
 .song-info-capsule {
     display: inline-flex !important;
     align-items: center !important;
@@ -1926,37 +1926,31 @@ input:checked+.slider:before {
     background: rgba(255, 255, 255, 0.03) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
-    max-width: 260px !important;
+    max-width: 280px !important;
     overflow: hidden !important;
     white-space: nowrap !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     flex-shrink: 1 !important;
     min-width: 0 !important;
+    gap: 0 !important;
 }
 
-
-
-/* Chapter pill — mirrors song-info-capsule styling */
-.chapter-pill {
-    display: inline-flex !important;
-    align-items: center !important;
-    height: 38px !important;
-    padding: 0 16px !important;
-    border-radius: 19px !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    flex-shrink: 0 !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.chapter-pill-text {
-    color: rgba(255, 255, 255, 0.75) !important;
+.song-info-separator {
+    color: rgba(255, 255, 255, 0.35) !important;
     font-size: 13px !important;
+    margin: 0 8px !important;
+    flex-shrink: 0 !important;
+}
+
+.song-context-text {
+    color: rgba(255, 255, 255, 0.55) !important;
+    font-size: 12px !important;
     font-family: system-ui, -apple-system, sans-serif !important;
     letter-spacing: 0.3px !important;
     white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: 0 !important;
 }
 
 /* The text element inside the pill */

@@ -99,9 +99,10 @@ export class VinylPlayer {
             ffmpegTrimBtn: document.getElementById('ffmpegTrimBtn'),
             ffmpegTrimStart: document.getElementById('ffmpegTrimStart'),
             ffmpegTrimEnd: document.getElementById('ffmpegTrimEnd'),
-            // Chapter pill
-            chapterPill: document.getElementById('chapterPill'),
-            chapterPillText: document.getElementById('chapterPillText'),
+            // Combined song/chapter pill
+            songInfoCapsule: document.getElementById('songInfoCapsule'),
+            songInfoSeparator: document.getElementById('songInfoSeparator'),
+            songContextText: document.getElementById('songContextText'),
             // Playback speed
             speedSelect: document.getElementById('speedSelect')
         };
@@ -178,16 +179,18 @@ export class VinylPlayer {
         }
     }
 
-    // Show/hide and update the chapter pill text
+    // Show/hide and update the chapter context within the combined pill
     updateChapterPill(text) {
-        const pill = this.elements.chapterPill;
-        const pillText = this.elements.chapterPillText;
-        if (!pill || !pillText) return;
+        const separator = this.elements.songInfoSeparator;
+        const contextText = this.elements.songContextText;
+        if (!separator || !contextText) return;
         if (text) {
-            pillText.textContent = text;
-            pill.style.display = 'inline-flex';
+            contextText.textContent = text;
+            separator.style.display = 'inline';
+            contextText.style.display = 'inline';
         } else {
-            pill.style.display = 'none';
+            separator.style.display = 'none';
+            contextText.style.display = 'none';
         }
     }
 
