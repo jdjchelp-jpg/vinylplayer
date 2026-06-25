@@ -593,6 +593,14 @@ export class VinylPlayer {
             });
         }
 
+        // Click on chapter pill cycles to next chapter
+        if (this.elements.songContextText) {
+            this.elements.songContextText.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.cycleChapter();
+            });
+        }
+
         // Close buttons for FFmpeg modal
         ['ffmpegModalCloseBtn', 'ffmpegConvertCloseBtn', 'ffmpegTrimCloseBtn'].forEach(id => {
             const btn = document.getElementById(id);
@@ -1188,8 +1196,8 @@ export class VinylPlayer {
 
                 // Load FFmpeg core
                 await this.ffmpeg.load({
-                    coreURL: "wasm/ffmpeg-core.js",
-                    wasmURL: "wasm/ffmpeg-core.wasm",
+                    coreURL: "/wasm/ffmpeg-core.js",
+                    wasmURL: "/wasm/ffmpeg-core.wasm",
                 });
             }
 
@@ -1951,8 +1959,8 @@ export class VinylPlayer {
         });
 
         await this.ffmpeg.load({
-            coreURL: 'wasm/ffmpeg-core.js',
-            wasmURL: 'wasm/ffmpeg-core.wasm',
+            coreURL: '/wasm/ffmpeg-core.js',
+            wasmURL: '/wasm/ffmpeg-core.wasm',
         });
 
         this.ffmpegLoaded = true;
@@ -2209,6 +2217,31 @@ export class VinylPlayer {
 
         this.showNotification(`${t.chapterParseSuccess} (${chapters.length} chapters)`, 'success');
         console.log('Parsed chapters:', chapters);
+    }
+
+    /**
+     * Cycle to the next chapter when the chapter pill is clicked.
+     * Wraps back to chapter 0 when reaching the end.
+     */
+    cycleChapter() {
+        if (this.chapters.length < 1) return;
+
+        // Advance to next chapter
+        let nextIdx = this.currentChapterIndex + 1;
+        if (nextIdx >= this.chapters.length) {
+            nextIdx = 0; // Wrap around
+        }
+
+        const nextChapter = this.chapters[nextIdx];
+        const media = this.isVideo ? this.localVideo : this.localAudio;
+        media.currentTime = nextChapter.startSeconds;
+        this.currentChapterIndex = nextIdx;
+        this.updateChapterPill(nextChapter.title);
+
+        // Update desc toggle badge
+        if (this.elements.descToggle) {
+            this.elements.descToggle.setAttribute('data-chapter', nextChapter.title);
+        }
     }
 
     /** HTML-escape helper to avoid XSS in queue titles. */

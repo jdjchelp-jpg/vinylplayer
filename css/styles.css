@@ -1928,8 +1928,7 @@ input:checked+.slider:before {
     background: rgba(255, 255, 255, 0.03) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
-    max-width: 50vw !important;
-    overflow: hidden !important;
+    max-width: min(95vw, 1200px) !important;
     white-space: nowrap !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     flex: 1 1 auto !important;
@@ -1950,10 +1949,14 @@ input:checked+.slider:before {
     font-family: system-ui, -apple-system, sans-serif !important;
     letter-spacing: 0.3px !important;
     white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
     min-width: 0 !important;
     display: block !important;
+    cursor: pointer !important;
+    transition: color 0.15s ease !important;
+}
+
+.song-context-text:hover {
+    color: rgba(255, 255, 255, 0.85) !important;
 }
 
 /* The text element inside the pill */
@@ -1962,8 +1965,6 @@ input:checked+.slider:before {
     font-size: 13px !important;
     font-family: system-ui, -apple-system, sans-serif !important;
     letter-spacing: 0.3px !important;
-    text-overflow: ellipsis !important;
-    overflow: hidden !important;
     white-space: nowrap !important;
     min-width: 0 !important;
     display: block !important;

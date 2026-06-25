@@ -54,8 +54,8 @@ export class ExportEngine {
         try {
             if (!ffmpeg.loaded) {
                 await ffmpeg.load({
-                    coreURL: "wasm/ffmpeg-core.js",
-                    wasmURL: "wasm/ffmpeg-core.wasm",
+                    coreURL: "/wasm/ffmpeg-core.js",
+                    wasmURL: "/wasm/ffmpeg-core.wasm",
                 });
             }
         } catch (e) {
