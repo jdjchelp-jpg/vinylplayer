@@ -2140,6 +2140,51 @@ input:checked+.slider:before {
     margin-bottom: 20px;
 }
 
+.export-fps-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.export-fps-label {
+    font-size: 0.85rem;
+    color: var(--clr-text-muted);
+    margin-right: 4px;
+}
+
+.export-fps-btn {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--clr-text);
+}
+
+.export-fps-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--clr-accent);
+}
+
+.export-fps-btn.selected {
+    border-color: rgba(34, 197, 94, 0.7);
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.export-fps-tag {
+    font-size: 0.62rem;
+    font-weight: 400;
+    color: var(--clr-text-muted);
+}
+
 .export-res-btn {
     display: flex;
     flex-direction: column;

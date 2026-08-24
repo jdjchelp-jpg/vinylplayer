@@ -512,6 +512,12 @@
         <div class="modal-content export-modal-content">
             <h2>&#127916; Export Video</h2>
             <p class="ffmpeg-hint">Choose resolution and start exporting your playlist as a video file.</p>
+            <div class="export-fps-row">
+                <span class="export-fps-label">Frame rate:</span>
+                <button class="export-fps-btn" data-fps="15">15<span class="export-fps-tag">fastest</span></button>
+                <button class="export-fps-btn" data-fps="24">24<span class="export-fps-tag">faster</span></button>
+                <button class="export-fps-btn selected" data-fps="30">30<span class="export-fps-tag">smoothest</span></button>
+            </div>
             <div class="export-resolution-grid">
                 <button class="export-res-btn" data-width="854" data-height="480" data-label="480p">
                     <span class="export-res-label">480p</span>

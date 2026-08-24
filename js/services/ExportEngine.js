@@ -21,11 +21,11 @@ export class ExportEngine {
      * @param {{ width: number, height: number, label: string }} opts
      */
     async startExport(opts) {
-        const { width, height, label } = opts;
+        const { width, height, label, fps = 30 } = opts;
         if (this.isExporting) return;
         this.isExporting = true;
         this.cancelRequested = false;
-        this.fps = 30;
+        this.fps = fps;
 
         // Set up off-screen canvas at chosen resolution
         this.canvas = document.createElement('canvas');
@@ -53,10 +53,7 @@ export class ExportEngine {
         const ffmpeg = this.player.ffmpeg;
         try {
             if (!ffmpeg.loaded) {
-                await ffmpeg.load({
-                    coreURL: "/wasm/ffmpeg-core.js",
-                    wasmURL: "/wasm/ffmpeg-core.wasm",
-                });
+                await ffmpeg.load(this.player._ffmpegCoreURLs());
             }
         } catch (e) {
             console.error("FFmpeg load failed:", e);
@@ -117,27 +114,54 @@ export class ExportEngine {
                 await ffmpeg.writeFile(audioFileName, audioData);
                 audioFiles.push(audioFileName);
 
-                // Render frames
-                for (let frame = 0; frame < frameCount; frame++) {
-                    if (this.cancelRequested) break;
+                // Render + encode + write frames through a bounded pipeline:
+                // canvas.toBlob() snapshots the bitmap at call time, so the next
+                // frame can be rendered while previous frames are still being
+                // JPEG-encoded and copied into the FFmpeg filesystem.
+                const PIPELINE_WINDOW = 6;
+                let writtenInTrack = 0;
+                let nextFrameToRender = 0;
+                let firstError = null;
+                const activeTasks = new Set();
 
-                    const time = frame / this.fps;
-                    this.player.renderToCanvas(this.ctx, this.canvas.width, this.canvas.height, time);
-
+                const encodeAndWrite = async (frameName) => {
                     const blob = await new Promise(resolve =>
                         this.canvas.toBlob(resolve, 'image/jpeg', 0.7)
                     );
+                    if (!blob) throw new Error(`Failed to encode frame ${frameName}`);
                     const buffer = await blob.arrayBuffer();
-                    const frameName = `frame_${String(renderedFrames).padStart(6, '0')}.jpg`;
                     await ffmpeg.writeFile(frameName, new Uint8Array(buffer));
-                    renderedFrames++;
+                };
 
-                    // Update progress every 15 frames to avoid UI thrash
-                    if (renderedFrames % 15 === 0 || frame === frameCount - 1) {
-                        const pct = Math.round((renderedFrames / totalFrames) * 85);
-                        this._setProgress(pct);
+                while (nextFrameToRender < frameCount && !this.cancelRequested) {
+                    const time = nextFrameToRender / this.fps;
+                    this.player.renderToCanvas(this.ctx, this.canvas.width, this.canvas.height, time);
+                    const frameName = `frame_${String(renderedFrames).padStart(6, '0')}.jpg`;
+                    renderedFrames++;
+                    nextFrameToRender++;
+
+                    const task = encodeAndWrite(frameName)
+                        .then(() => { writtenInTrack++; })
+                        .catch(e => { if (!firstError) firstError = e; })
+                        .finally(() => activeTasks.delete(task));
+                    activeTasks.add(task);
+
+                    // Keep at most PIPELINE_WINDOW frames in flight (bounds memory)
+                    if (activeTasks.size >= PIPELINE_WINDOW) {
+                        await Promise.race(activeTasks);
+                        if (firstError) break;
+                        this._setProgress(Math.round((renderedFrames / totalFrames) * 85));
                         this._setStatus(`Rendering frames... ${renderedFrames}/${totalFrames}`);
                     }
+                }
+
+                // Drain remaining in-flight frames
+                await Promise.all(activeTasks);
+                if (firstError) throw firstError;
+
+                if (!this.cancelRequested && writtenInTrack > 0) {
+                    this._setProgress(Math.round((renderedFrames / totalFrames) * 85));
+                    this._setStatus(`Rendering frames... ${renderedFrames}/${totalFrames}`);
                 }
 
                 // Cleanup track resources to free memory

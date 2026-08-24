@@ -478,7 +478,17 @@ export class VinylPlayer {
                 const width = parseInt(btn.dataset.width, 10);
                 const height = parseInt(btn.dataset.height, 10);
                 const label = btn.dataset.label;
-                this.exportEngine.startExport({ width, height, label });
+                const fps = this.exportFps || 30;
+                this.exportEngine.startExport({ width, height, label, fps });
+            });
+        });
+
+        // Export frame rate buttons
+        document.querySelectorAll('.export-fps-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.export-fps-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                this.exportFps = parseInt(btn.dataset.fps, 10) || 30;
             });
         });
 
@@ -1197,10 +1207,7 @@ export class VinylPlayer {
                 });
 
                 // Load FFmpeg core
-                await this.ffmpeg.load({
-                    coreURL: "/wasm/ffmpeg-core.js",
-                    wasmURL: "/wasm/ffmpeg-core.wasm",
-                });
+                await this.ffmpeg.load(this._ffmpegCoreURLs());
             }
 
             const ffmpeg = this.ffmpeg;
@@ -1702,18 +1709,34 @@ export class VinylPlayer {
         this.writeString(view, 36, 'data');
         view.setUint32(40, dataSize, true);
 
-        // Write audio data
+        // Write audio data via a single Int16Array pass (byteOffset 44 is even,
+        // so a typed-array view is valid and much faster than DataView writes)
         const channels = [];
         for (let i = 0; i < numChannels; i++) {
             channels.push(audioBuffer.getChannelData(i));
         }
-        let offset = 44;
-        for (let i = 0; i < length; i++) {
-            for (let ch = 0; ch < numChannels; ch++) {
-                const sample = Math.max(-1, Math.min(1, channels[ch][i]));
-                const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-                view.setInt16(offset, intSample, true);
-                offset += 2;
+        const samples = new Int16Array(buffer, 44, length * numChannels);
+        const toInt16 = s => {
+            const clamped = s < -1 ? -1 : s > 1 ? 1 : s;
+            return clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+        };
+        if (numChannels === 2) {
+            const left = channels[0];
+            const right = channels[1];
+            for (let i = 0, o = 0; i < length; i++, o += 2) {
+                samples[o] = toInt16(left[i]);
+                samples[o + 1] = toInt16(right[i]);
+            }
+        } else if (numChannels === 1) {
+            const mono = channels[0];
+            for (let i = 0; i < length; i++) {
+                samples[i] = toInt16(mono[i]);
+            }
+        } else {
+            for (let i = 0; i < length; i++) {
+                for (let ch = 0; ch < numChannels; ch++) {
+                    samples[i * numChannels + ch] = toInt16(channels[ch][i]);
+                }
             }
         }
         return new Uint8Array(buffer);
@@ -1942,6 +1965,14 @@ export class VinylPlayer {
         if (this.elements.ffmpegProgressBar) this.elements.ffmpegProgressBar.style.width = `${pct}%`;
     }
 
+    /** Resolve FFmpeg WASM asset URLs relative to the app's base path (works at any hosting depth). */
+    _ffmpegCoreURLs() {
+        return {
+            coreURL: new URL('wasm/ffmpeg-core.js', document.baseURI).href,
+            wasmURL: new URL('wasm/ffmpeg-core.wasm', document.baseURI).href,
+        };
+    }
+
     /** Ensure ffmpeg.load() has been called. Shows progress while loading. */
     async _ffmpegEnsureLoaded() {
         if (this.ffmpegLoaded) return;
@@ -1959,10 +1990,7 @@ export class VinylPlayer {
             this._ffmpegSetProgress(Math.round(progress * 100));
         });
 
-        await this.ffmpeg.load({
-            coreURL: '/wasm/ffmpeg-core.js',
-            wasmURL: '/wasm/ffmpeg-core.wasm',
-        });
+        await this.ffmpeg.load(this._ffmpegCoreURLs());
 
         this.ffmpegLoaded = true;
         this._ffmpegSetProgress(100);
