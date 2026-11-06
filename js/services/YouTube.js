@@ -84,6 +84,17 @@ export class YouTubeService {
         handlerCalled = true;
         originalHandler();
         this.iframeApiReady = true;
+        resolve();
+      };
+
+      window.addEventListener('load', () => {
+        if (!handlerCalled && this.iframeApiScript && this.iframeApiScript.readyState === 'complete') {
+          this.iframeApiReady = true;
+          resolve();
+        }
+      }, { once: true });
+    });
+  }
 
   async _instantiatePlayer(id, mount) {
     await this._ensureIframeApi();
@@ -104,6 +115,8 @@ export class YouTubeService {
     const mountTarget = mount && mount.appendChild
       ? mount
       : document.body;
+
+    mountTarget.appendChild(container);
 
     const onReady = (event) => {
       if (!container.contains(document.activeElement)) {
@@ -143,6 +156,13 @@ export class YouTubeService {
       }, 8000);
 
       const finish = (status) => {
+        clearTimeout(timeout);
+        if (status === 'ready') resolve(player);
+        else if (status === 'error') {
+          player.destroy();
+          reject(new Error('YouTube player did not become ready.'));
+        }
+      };
 
       const poll = () => {
         const state = player.getPlayerState();
@@ -185,28 +205,6 @@ export class YouTubeService {
     }
     this.players.clear();
   }
-}
-
-        clearTimeout(timeout);
-        if (status === 'ready') resolve(player);
-        else if (status === 'error') {
-          player.destroy();
-          reject(new Error('YouTube player did not become ready.'));
-        }
-      };
-
-        resolve();
-      };
-
-      window.addEventListener('load', () => {
-        if (!handlerCalled && this.iframeApiScript && this.iframeApiScript.readyState === 'complete') {
-          this.iframeApiReady = true;
-          resolve();
-        }
-      }, { once: true });
-    });
-  }
-
   static extractId(url) {
     return extractYouTubeId(url);
   }

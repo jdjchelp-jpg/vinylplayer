@@ -219,9 +219,8 @@
   100% { background-position: 200% center; }
 }
 
-.glass-spring,
-.glass-spring * {
-  transition: all var(--glass-transition) cubic-bezier(0.22, 1, 0.36, 1) !important;
+.glass-spring {
+  transition: all var(--glass-transition) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Reveal fallbacks for panels and dialogs. */
