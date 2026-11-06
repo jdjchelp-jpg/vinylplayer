@@ -50,11 +50,12 @@
     <meta name="twitter:data2" content="5 minutes">
     <!-- /Search Engine Optimisation-->
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/liquid-glass.css">
     <script src="js/jsmediatags.js"></script>
 </head>
 
 <body draggable="false">
-    <div class="menu-container">
+    <div class="menu-container glass glass-spring">
         <button class="menu-toggle">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -154,7 +155,7 @@
         </div>
     </div>
 
-    <div class="container" draggable="false">
+    <div class="container glass glass-spring" draggable="false">
         <div class="album-cover" draggable="false"></div>
         <div class="vinyl-record" draggable="false">
             <div class="vinyl-cover" draggable="false">
@@ -220,7 +221,7 @@
         </div>
     </div>
 
-    <div class="desc-container">
+    <div class="desc-container glass">
         <button class="desc-toggle">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -262,7 +263,7 @@
     </div>
 
     <!-- Queue Panel -->
-    <div class="queue-panel" id="queuePanel">
+    <div class="queue-panel glass glass-spring" id="queuePanel">
         <div class="queue-header">
             <span class="queue-title">Up Next</span>
             <span class="queue-count" id="queueCount">0 tracks</span>
@@ -664,7 +665,15 @@
             <feGaussianBlur in="displaced" stdDeviation="0.5" result="blurred" />
             <feComposite in="blurred" in2="SourceGraphic" operator="over" />
         </filter>
-    </defs>
+    <filter id="glassRefraction" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="2" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+        <feGaussianBlur in="displaced" stdDeviation="0.6" result="blurred" />
+        <feColorMatrix in="blurred" type="saturate" values="1.15" result="sat" />
+        <feBlend in="SourceGraphic" in2="sat" mode="screen" result="refracted" />
+        <feComposite in="refracted" in2="SourceGraphic" operator="over" />
+    </filter>
+</defs>
 </svg>
 
 </html>
