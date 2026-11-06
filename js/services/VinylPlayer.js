@@ -4,6 +4,8 @@ import { HolidayManager } from './HolidayManager.js';
 
 import { ExportEngine } from './ExportEngine.js';
 
+import { YouTubeService } from './YouTube.js';
+
 // ── Supported file extensions (lowercase, no dots) ──
 const SUPPORTED_AUDIO = new Set([
     'mp3','m4a','flac','wav','wma','ogg','oga','opus','alac','aiff','aif',
@@ -22,6 +24,8 @@ export class VinylPlayer {
     constructor() {
         console.log("VinylPlayer constructor started");
         this.playlistManager = new PlaylistManager();
+
+        this.youtubeService = new YouTubeService();
 
         this.isPlaying = false;
         this.isDragging = false;
@@ -740,6 +744,11 @@ export class VinylPlayer {
         if (!url) return;
 
         try {
+            if (this.youtubeService.isYouTubeUrl(url)) {
+                await this.youtubeService.loadYouTubeUrl(url, this);
+                return;
+            }
+
             if (!url.startsWith('http')) {
                 throw new Error('Please enter a valid URL');
             }
