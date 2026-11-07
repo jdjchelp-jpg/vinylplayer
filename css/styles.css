@@ -2317,3 +2317,118 @@ input:checked+.slider:before {
     font-size: 0.82rem;
     padding: 8px 20px;
 }
+
+/* =====================================================================
+   YTXTube-inspired LIQUID GLASS LAYER
+   A restrained frosted-glass system for the player shell and utility UI.
+   ===================================================================== */
+:root {
+    --glass-surface: rgba(21, 31, 52, 0.56);
+    --glass-surface-strong: rgba(17, 27, 46, 0.78);
+    --glass-highlight: rgba(255, 255, 255, 0.16);
+    --glass-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), 0 2px 12px rgba(0, 0, 0, 0.24);
+}
+
+body {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 18% 18%, rgba(62, 143, 255, 0.23), transparent 34%),
+        radial-gradient(circle at 82% 78%, rgba(162, 76, 255, 0.16), transparent 30%),
+        linear-gradient(145deg, #07111f 0%, #0d1b2a 52%, #111a31 100%);
+}
+
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    z-index: -1;
+    width: 38vw;
+    height: 38vw;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.24;
+    pointer-events: none;
+}
+
+body::before {
+    top: -18vw;
+    left: -10vw;
+    background: #246bce;
+}
+
+body::after {
+    right: -15vw;
+    bottom: -20vw;
+    background: #8b3dca;
+}
+
+.menu-container,
+.controls-container,
+.queue-panel,
+.modal-content,
+.export-progress-card,
+.ffmpeg-modal-content {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035)), var(--glass-surface);
+    border: 1px solid var(--glass-highlight);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+}
+
+.menu-container {
+    border-radius: 22px;
+    overflow: hidden;
+}
+
+.menu-toggle,
+.menu-item,
+.control-btn,
+.modal-btn,
+.speed-select {
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+}
+
+.menu-item:hover,
+.control-btn:hover,
+.modal-btn:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.controls-container {
+    border-radius: 24px;
+    padding: 12px 18px;
+}
+
+.container::before {
+    content: '';
+    position: absolute;
+    inset: -44px -92px;
+    z-index: -1;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 48px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.015));
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 30px 90px rgba(0, 0, 0, 0.28);
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    pointer-events: none;
+}
+
+.queue-panel {
+    background-color: var(--glass-surface-strong);
+}
+
+@media (max-width: 600px) {
+    body { overflow-y: auto; }
+    .container::before { inset: -24px -40px; border-radius: 32px; }
+    .controls-container { padding: 10px 12px; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .menu-container, .controls-container, .queue-panel, .modal-content,
+    .export-progress-card, .ffmpeg-modal-content { backdrop-filter: none; }
+}
