@@ -2432,3 +2432,26 @@ body::after {
     .menu-container, .controls-container, .queue-panel, .modal-content,
     .export-progress-card, .ffmpeg-modal-content { backdrop-filter: none; }
 }
+
+/* The player itself is the visual hero, not a masked glass card. The generic
+   .glass utility is intentionally limited to the surrounding controls. */
+.container.glass {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+}
+
+/* Keep the original record scale usable on narrow/high-DPI browser viewports. */
+@media (max-width: 1000px) {
+    .container { scale: clamp(0.62, calc(100vw / 1050), 1); }
+}
+
+@media (max-width: 600px) {
+    .container { scale: clamp(0.5, calc(100vw / 900), 0.72); }
+}

@@ -329,7 +329,10 @@ export class VinylPlayer {
         // Settings
         if (this.elements.settingsBtn) {
             this.elements.settingsBtn.addEventListener('click', () => {
-                this.elements.settingsModal.style.display = 'flex';
+                if (this.elements.settingsModal) {
+                    this.elements.settingsModal.style.display = 'flex';
+                    this.elements.settingsModal.setAttribute('aria-hidden', 'false');
+                }
                 this.elements.menuItems.classList.remove('active'); // Close menu
             });
         }
@@ -337,8 +340,25 @@ export class VinylPlayer {
         if (this.elements.settingsCloseBtn) {
             this.elements.settingsCloseBtn.addEventListener('click', () => {
                 this.elements.settingsModal.style.display = 'none';
+                this.elements.settingsModal.setAttribute('aria-hidden', 'true');
             });
         }
+
+        if (this.elements.settingsModal) {
+            this.elements.settingsModal.addEventListener('click', (event) => {
+                if (event.target === this.elements.settingsModal) {
+                    this.elements.settingsModal.style.display = 'none';
+                    this.elements.settingsModal.setAttribute('aria-hidden', 'true');
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && this.elements.settingsModal?.style.display === 'flex') {
+                this.elements.settingsModal.style.display = 'none';
+                this.elements.settingsModal.setAttribute('aria-hidden', 'true');
+            }
+        });
 
         // Language Select
         if (this.elements.languageSelect) {
