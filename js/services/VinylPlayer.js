@@ -114,6 +114,7 @@ export class VinylPlayer {
             // Playback speed
             speedSelect: document.getElementById('speedSelect')
             ,uiScaleSelect: document.getElementById('uiScaleSelect')
+            ,loopModeSelect: document.getElementById('loopModeSelect')
         };
         this.elements.youtubeMount = document.getElementById('vinylTrack');
         this.elements.navQueueBtn = document.getElementById('navQueueBtn');
@@ -262,6 +263,12 @@ export class VinylPlayer {
     }
 
     onLocalEnded() {
+        if (this.loopMode === 'track') {
+            const media = this.isVideo ? this.localVideo : this.localAudio;
+            media.currentTime = 0;
+            media.play().catch(() => {});
+            return;
+        }
         this.isPlaying = false;
         this.stopRotation();
         this.updatePlayButtonIcon(false);
@@ -278,6 +285,20 @@ export class VinylPlayer {
         }
         if (this.elements.currentTime) {
             this.elements.currentTime.textContent = this.formatTime(current);
+        }
+        if (this.loopMode === 'chapter' && this.chapters.length) {
+            const index = this.chapters.findIndex((chapter, i) => {
+                const next = this.chapters[i + 1]?.startSeconds ?? total;
+                return current >= chapter.startSeconds && current < next;
+            });
+            if (index >= 0) {
+                const end = this.chapters[index + 1]?.startSeconds ?? total;
+                if (current >= end - 0.08) {
+                    media.currentTime = Number(this.chapters[index].startSeconds || 0);
+                    if (media.paused) media.play().catch(() => {});
+                    return;
+                }
+            }
         }
 
         this.syncActiveChapter(current);
@@ -421,6 +442,12 @@ export class VinylPlayer {
             });
         }
         this.elements.uiScaleSelect?.addEventListener('change', (event) => this.applyUiScale(event.target.value));
+        this.loopMode = localStorage.getItem('loopMode') || 'off';
+        if (this.elements.loopModeSelect) this.elements.loopModeSelect.value = this.loopMode;
+        this.elements.loopModeSelect?.addEventListener('change', (event) => {
+            this.loopMode = event.target.value;
+            localStorage.setItem('loopMode', this.loopMode);
+        });
 
         // Settings Toggles
         if (this.elements.showLocalVideoToggle) {
