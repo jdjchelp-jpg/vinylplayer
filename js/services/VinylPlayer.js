@@ -2355,18 +2355,22 @@ export class VinylPlayer {
             let metadataName = null;
             if (Array.isArray(this.chapters) && this.chapters.length) {
                 metadataName = 'chapters.ffmeta';
+                const media = this.isVideo ? this.localVideo : this.localAudio;
+                const sourceDuration = Number(this.elements.duration?.dataset.seconds || media?.duration || 0);
                 const esc = (value) => String(value || '').replace(/\\/g, '\\\\').replace(/([#=;])/g, '\\$1').replace(/\r?\n/g, ' ');
                 const lines = [';FFMETADATA1'];
                 this.chapters.forEach((chapter, index) => {
                     const start = Math.max(0, Math.round(Number(chapter.startSeconds || 0) * 1000));
                     const next = this.chapters[index + 1];
-                    const end = next ? Math.max(start + 1, Math.round(Number(next.startSeconds || 0) * 1000)) : undefined;
+                    const end = next
+                        ? Math.max(start + 1, Math.round(Number(next.startSeconds || 0) * 1000))
+                        : (sourceDuration > 0 ? Math.max(start + 1, Math.round(sourceDuration * 1000)) : start + 1);
                     lines.push('[CHAPTER]', 'TIMEBASE=1/1000', `START=${start}`);
-                    if (end !== undefined) lines.push(`END=${end}`);
+                    lines.push(`END=${end}`);
                     lines.push(`title=${esc(chapter.title || `Chapter ${index + 1}`)}`);
                 });
                 await this.ffmpeg.writeFile(metadataName, new TextEncoder().encode(lines.join('\n')));
-                args.push('-i', metadataName, '-map_metadata', '1');
+                args.push('-i', metadataName, '-map', '0:a:0', '-map_metadata', '1', '-map_chapters', '1');
             } else {
                 args.push('-map_metadata', '0');
             }
