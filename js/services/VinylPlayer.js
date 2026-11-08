@@ -590,7 +590,9 @@ export class VinylPlayer {
                 const height = parseInt(btn.dataset.height, 10);
                 const label = btn.dataset.label;
                 const fps = this.exportFps || 30;
-                this.exportEngine.startExport({ width, height, label, fps });
+                const background = document.getElementById('exportBackgroundInput')?.files?.[0] || null;
+                const theme = document.getElementById('exportThemeSelect')?.value || 'midnight';
+                this.exportEngine.startExport({ width, height, label, fps, background, theme });
             });
         });
 
@@ -1848,11 +1850,17 @@ export class VinylPlayer {
     }
 
     renderExportCanvas(ctx, width, height, time) {
-        const gradient = ctx.createLinearGradient(0, 0, width, height);
-        gradient.addColorStop(0, '#132b4d');
-        gradient.addColorStop(1, '#090f1d');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
+        const colors = { christmas: ['#681d28', '#210b16'], ocean: ['#12466a', '#071622'], halloween: ['#6a2c12', '#140a18'], midnight: ['#132b4d', '#090f1d'] }[this.exportTheme || 'midnight'];
+        if (this.exportBackgroundImage?.complete) {
+            const scale = Math.max(width / this.exportBackgroundImage.width, height / this.exportBackgroundImage.height);
+            const iw = this.exportBackgroundImage.width * scale, ih = this.exportBackgroundImage.height * scale;
+            ctx.drawImage(this.exportBackgroundImage, (width - iw) / 2, (height - ih) / 2, iw, ih);
+            ctx.fillStyle = 'rgba(4,8,18,.32)'; ctx.fillRect(0, 0, width, height);
+        } else {
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, colors[0]); gradient.addColorStop(1, colors[1]);
+            ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
+        }
         const panelWidth = width * 0.56;
         const recordSize = Math.min(height * 0.82, panelWidth * 0.9);
         const cx = panelWidth * 0.48;

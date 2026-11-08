@@ -21,7 +21,7 @@ export class ExportEngine {
      * @param {{ width: number, height: number, label: string }} opts
      */
     async startExport(opts) {
-        const { width, height, label, fps = 30 } = opts;
+        const { width, height, label, fps = 30, background = null, theme = 'midnight' } = opts;
         if (this.isExporting) return;
         this.isExporting = true;
         this.cancelRequested = false;
@@ -31,7 +31,7 @@ export class ExportEngine {
         // JPEG frame in the FFmpeg WASM filesystem and is substantially lighter
         // for long exports. The legacy FFmpeg path remains as a fallback.
         if (typeof MediaRecorder !== 'undefined' && HTMLCanvasElement.prototype.captureStream) {
-            await this.startStreamingExport({ width, height, label, fps });
+            await this.startStreamingExport({ width, height, label, fps, background, theme });
             return;
         }
 
@@ -260,7 +260,7 @@ export class ExportEngine {
         }
     }
 
-    async startStreamingExport({ width, height, label, fps }) {
+    async startStreamingExport({ width, height, label, fps, background, theme }) {
         this.isExporting = true;
         this.cancelRequested = false;
         this.fps = fps;
@@ -280,6 +280,13 @@ export class ExportEngine {
         vinylImage.src = new URL('images/vinyl.png', document.baseURI).href;
         await new Promise(resolve => { vinylImage.onload = resolve; vinylImage.onerror = resolve; });
         this.player.exportVinylImage = vinylImage;
+        if (background) {
+            const backgroundImage = new Image();
+            backgroundImage.src = URL.createObjectURL(background);
+            await new Promise(resolve => { backgroundImage.onload = resolve; backgroundImage.onerror = resolve; });
+            this.player.exportBackgroundImage = backgroundImage;
+        }
+        this.player.exportTheme = theme;
         const canvasStream = canvas.captureStream(fps);
         const queue = this.player.playlistManager.queue;
         if (!queue.length) {
@@ -348,6 +355,7 @@ export class ExportEngine {
 
             this.player.exportMode = false;
             this.player.exportVinylImage = null;
+            this.player.exportBackgroundImage = null;
             recorder?.stop();
             await new Promise(resolve => recorder ? recorder.addEventListener('stop', resolve, { once: true }) : resolve());
             if (this.cancelRequested) throw new Error('Export cancelled.');
@@ -364,6 +372,7 @@ export class ExportEngine {
         } catch (error) {
             this.player.exportMode = false;
             this.player.exportVinylImage = null;
+            this.player.exportBackgroundImage = null;
             recorder?.stop();
             console.error('Streaming export failed:', error);
             this.player.showNotification(error.message === 'Export cancelled.' ? error.message : `Export failed: ${error.message}`, 'error');

@@ -2370,6 +2370,8 @@ body .desc-container {
     transition: background .2s ease, border-color .2s ease, transform .2s ease;
 }
 .url-hint { margin: 10px 2px 0; color: var(--clr-text-muted); font-size: .82rem; line-height: 1.4; }
+.export-option { display:grid; gap:7px; margin:10px 0; color:var(--clr-text-muted); font-size:.88rem; }
+.export-option input, .export-option select { color:var(--clr-text); background:rgba(255,255,255,.08); border:1px solid var(--clr-border); border-radius:9px; padding:9px; font:inherit; }
 .ffmpeg-format-field { display:grid; gap:8px; margin:14px 0 18px; color:var(--clr-text-muted); font-size:.9rem; }
 .ffmpeg-format-field select { width:100%; padding:10px 12px; border:1px solid var(--clr-border); border-radius:10px; color:var(--clr-text); background:rgba(255,255,255,.08); font:inherit; }
 .settings-action::after { content: '›'; font-size: 1.35rem; color: var(--clr-text-muted); }

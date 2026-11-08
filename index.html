@@ -529,6 +529,12 @@
         <div class="modal-content export-modal-content">
             <h2>&#127916; Export Video</h2>
             <p class="ffmpeg-hint">Choose resolution and start exporting your playlist as a video file.</p>
+            <label class="export-option">Background image (optional)
+                <input type="file" id="exportBackgroundInput" accept="image/png,image/jpeg,image/webp">
+            </label>
+            <label class="export-option">Theme
+                <select id="exportThemeSelect"><option value="midnight">Midnight</option><option value="christmas">Christmas</option><option value="ocean">Ocean</option><option value="halloween">Halloween</option></select>
+            </label>
             <div class="export-fps-row">
                 <span class="export-fps-label">Frame rate:</span>
                 <button class="export-fps-btn" data-fps="15">15<span class="export-fps-tag">fastest</span></button>

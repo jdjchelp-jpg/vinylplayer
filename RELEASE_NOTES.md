@@ -1,3 +1,16 @@
+# BluePeak Vinyl Player v1.3.0
+
+## Added
+
+- Google Colab native FFmpeg exporter for long-form video creation.
+- Background image upload workflow with grooved vinyl overlay.
+- Chapter/timestamp panel, theme selection, snow/fireworks options, resolution, FPS, looping, and Google Drive output controls.
+
+## Attribution
+
+- BluePeak Vinyl Player contributors and Codex-assisted implementation.
+- Colab workflow uses native FFmpeg for long-running exports instead of browser FFmpeg WASM.
+
 # BluePeak Vinyl Player v1.2.0
 
 ## Added
