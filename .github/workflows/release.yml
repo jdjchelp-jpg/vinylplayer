@@ -34,6 +34,6 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: BluePeak Vinyl Player ${{ github.ref_name }}
-          releaseBodyFile: RELEASE_NOTES.md
+          releaseBody: See RELEASE_NOTES.md in the repository for the complete version notes.
           releaseDraft: true
           prerelease: false
