@@ -593,7 +593,7 @@
             <!-- Tab bar -->
             <div class="ffmpeg-tabs">
                 <button class="ffmpeg-tab active" data-tab="metadata" id="ffmpegTabMeta">Metadata</button>
-                <button class="ffmpeg-tab" data-tab="convert" id="ffmpegTabConvert">Convert to MP3</button>
+                <button class="ffmpeg-tab" data-tab="convert" id="ffmpegTabConvert">Convert format</button>
                 <button class="ffmpeg-tab" data-tab="trim" id="ffmpegTabTrim">Trim</button>
             </div>
 
@@ -610,7 +610,17 @@
 
             <!-- Convert tab -->
             <div class="ffmpeg-tab-content" id="ffmpegTabContentConvert">
-                <p class="ffmpeg-hint">Converts the current local audio file to MP3 (192kbps).</p>
+                <p class="ffmpeg-hint">Convert the current local file while preserving metadata and chapters when supported.</p>
+                <label class="ffmpeg-format-field">Output format
+                    <select id="ffmpegOutputFormat">
+                        <option value="mp3" selected>MP3 — compatible</option>
+                        <option value="m4a">M4A — AAC</option>
+                        <option value="m4b">M4B — audiobook</option>
+                        <option value="flac">FLAC — lossless</option>
+                        <option value="wav">WAV — PCM</option>
+                        <option value="ogg">OGG — Opus</option>
+                    </select>
+                </label>
                 <div class="modal-buttons">
                     <button class="modal-btn" id="ffmpegConvertBtn">Convert &amp; Download</button>
                     <button class="modal-btn secondary" id="ffmpegConvertCloseBtn">Close</button>

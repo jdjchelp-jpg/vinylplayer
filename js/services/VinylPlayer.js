@@ -106,6 +106,7 @@ export class VinylPlayer {
             ffmpegTrimBtn: document.getElementById('ffmpegTrimBtn'),
             ffmpegTrimStart: document.getElementById('ffmpegTrimStart'),
             ffmpegTrimEnd: document.getElementById('ffmpegTrimEnd'),
+            ffmpegOutputFormat: document.getElementById('ffmpegOutputFormat'),
             // Combined song/chapter pill
             songInfoCapsule: document.getElementById('songInfoCapsule'),
             songInfoSeparator: document.getElementById('songInfoSeparator'),
@@ -672,7 +673,7 @@ export class VinylPlayer {
             this.elements.ffmpegAnalyzeBtn.addEventListener('click', () => this.ffmpegGetMetadata());
         }
         if (this.elements.ffmpegConvertBtn) {
-            this.elements.ffmpegConvertBtn.addEventListener('click', () => this.ffmpegConvertToMp3());
+            this.elements.ffmpegConvertBtn.addEventListener('click', () => this.ffmpegConvertToFormat());
         }
         if (this.elements.ffmpegTrimBtn) {
             this.elements.ffmpegTrimBtn.addEventListener('click', () => {
@@ -2326,8 +2327,8 @@ export class VinylPlayer {
         }
     }
 
-    /** Convert current local file to MP3 (192kbps) and trigger download. */
-    async ffmpegConvertToMp3() {
+    /** Convert current local file to a selected format and trigger download. */
+    async ffmpegConvertToFormat() {
         const file = this.currentFile;
         if (!file) { this.showNotification('No local file loaded.', 'error'); return; }
 
@@ -2338,7 +2339,8 @@ export class VinylPlayer {
             const { fetchFile } = FFmpegUtil;
 
             const inputName = 'conv_in' + file.name.replace(/[^a-z0-9.]/gi, '_');
-            const outputName = file.name.replace(/\.[^.]+$/, '') + '_converted.mp3';
+            const format = this.elements.ffmpegOutputFormat?.value || 'mp3';
+            const outputName = file.name.replace(/\.[^.]+$/, '') + `_converted.${format}`;
 
             this._ffmpegSetStatus('Writing file to memory...');
             this._ffmpegSetProgress(15);
@@ -2374,7 +2376,15 @@ export class VinylPlayer {
             } else {
                 args.push('-map_metadata', '0');
             }
-            args.push('-c:a', 'libmp3lame', '-b:a', '192k', '-id3v2_version', '3', outputName);
+            const codecArgs = {
+                mp3: ['-c:a', 'libmp3lame', '-b:a', '192k', '-id3v2_version', '3'],
+                m4a: ['-c:a', 'aac', '-b:a', '192k'],
+                m4b: ['-c:a', 'aac', '-b:a', '128k'],
+                flac: ['-c:a', 'flac'],
+                wav: ['-c:a', 'pcm_s16le'],
+                ogg: ['-c:a', 'libopus', '-b:a', '128k']
+            }[format] || ['-c:a', 'libmp3lame', '-b:a', '192k'];
+            args.push(...codecArgs, outputName);
             await this.ffmpeg.exec(args);
 
             this._ffmpegSetStatus('Reading output...');
