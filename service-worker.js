@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vinyl-player-v27';
+const CACHE_NAME = 'vinyl-player-v28';
 const ASSETS = [
     './',
     './index.html',
@@ -60,6 +60,13 @@ self.addEventListener('fetch', (event) => {
                 return caches.match('./index.html');
             })
         );
+        return;
+    }
+
+    // Never cache user media or the large FFmpeg runtime response. This keeps
+    // the web app from retaining full audio/video files in Cache Storage.
+    const pathname = new URL(event.request.url).pathname;
+    if (pathname.includes('/uploads/') || /\.(mp3|m4a|m4b|wav|flac|ogg|mp4|mkv|webm|wasm)$/i.test(pathname)) {
         return;
     }
 

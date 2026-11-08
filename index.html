@@ -49,11 +49,18 @@
     <meta name="twitter:label2" content="Time to read">
     <meta name="twitter:data2" content="5 minutes">
     <!-- /Search Engine Optimisation-->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=20261108">
     <script src="js/jsmediatags.js"></script>
 </head>
 
 <body draggable="false">
+    <nav class="glass-nav" id="glassNav" aria-label="Player navigation">
+        <button class="glass-nav-item active" id="navPlayerBtn" type="button">Player</button>
+        <button class="glass-nav-item" id="navQueueBtn" type="button">Playlist</button>
+        <button class="glass-nav-item" id="navSettingsBtn" type="button">Settings</button>
+        <button class="glass-nav-item" id="navLyricsBtn" type="button">Lyrics</button>
+        <button class="glass-nav-item" id="navChaptersBtn" type="button">Chapters</button>
+    </nav>
     <div class="menu-container">
         <button class="menu-toggle">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
@@ -106,6 +113,8 @@
                 </svg>
                 <span>Download Playlist</span>
             </button>
+            <button class="menu-item" id="importPlaylistBtn" type="button"><span class="icon">↥</span><span>Import Playlist</span></button>
+            <input type="file" id="playlistFileInput" accept=".txt,.m3u,.m3u8" hidden>
             <button class="menu-item" id="exportVideoBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -212,10 +221,6 @@
                 <option value="1.5">1.5x</option>
                 <option value="1.75">1.75x</option>
                 <option value="2">2x</option>
-                <option value="2.5">2.5x</option>
-                <option value="3">3x</option>
-                <option value="4">4x</option>
-                <option value="5">5x</option>
             </select>
         </div>
     </div>
@@ -361,11 +366,8 @@
                 </label>
             </div>
             <div class="setting-item">
-                <span data-i18n="glassMode">Glass Mode</span>
-                <label class="switch">
-                    <input type="checkbox" id="glassModeToggle">
-                    <span class="slider round"></span>
-                </label>
+                <span>Old YouTube Layout</span>
+                <label class="switch"><input type="checkbox" id="oldYouTubeModeToggle"><span class="slider round"></span></label>
             </div>
             <div class="setting-item">
                 <span data-i18n="language">Language</span>
