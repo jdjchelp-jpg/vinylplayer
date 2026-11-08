@@ -113,7 +113,10 @@
                 </svg>
                 <span>Download Playlist</span>
             </button>
-            <button class="menu-item" id="importPlaylistBtn" type="button"><span class="icon">↥</span><span>Import Playlist</span></button>
+            <button class="menu-item" id="importPlaylistBtn" type="button">
+                <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>Import Playlist</span>
+            </button>
             <input type="file" id="playlistFileInput" accept=".txt,.m3u,.m3u8" hidden>
             <button class="menu-item" id="exportVideoBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
@@ -140,15 +143,6 @@
                     <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
                 <span data-i18n="timestampInput">Add Chapters</span>
-            </button>
-            <button class="menu-item" id="supportedFormatsBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                <span data-i18n="supportedFormats">Supported Formats</span>
             </button>
             <button class="menu-item" id="audioToolsBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
@@ -369,6 +363,7 @@
                 <span>Old YouTube Layout</span>
                 <label class="switch"><input type="checkbox" id="oldYouTubeModeToggle"><span class="slider round"></span></label>
             </div>
+            <button class="settings-action" id="supportedFormatsBtn" type="button">Supported formats</button>
             <div class="setting-item">
                 <span data-i18n="language">Language</span>
                 <select id="languageSelect">
@@ -500,6 +495,7 @@
                         <div class="format-badge recommended">.mp4</div>
                         <div class="format-badge recommended">.webm</div>
                         <div class="format-badge recommended">.m4b</div>
+                        <div class="format-badge recommended">.m4a</div>
                     </div>
                 </div>
             </div>

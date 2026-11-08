@@ -176,6 +176,7 @@ export class VinylPlayer {
                 this.elements.currentTime.textContent = this.formatTime(info.currentTime);
                 this.elements.duration.textContent = this.formatTime(info.duration);
                 this.elements.progressBar.value = info.duration ? (info.currentTime / info.duration) * 100 : 0;
+                this.syncActiveChapter(info.currentTime);
             }
         });
 
@@ -273,20 +274,19 @@ export class VinylPlayer {
             this.elements.currentTime.textContent = this.formatTime(current);
         }
 
-        // Auto-update chapter pill as playback crosses chapter boundaries
-        if (this.chapters.length > 1 && !isNaN(current) && this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
-            let idx = 0;
-            for (let i = this.chapters.length - 1; i >= 0; i--) {
-                if (current >= this.chapters[i].startSeconds) {
-                    idx = i;
-                    break;
-                }
-            }
-            if (idx !== this.currentChapterIndex) {
-                this.currentChapterIndex = idx;
-                this.updateChapterPill(this.chapters[idx].title);
-            }
+        this.syncActiveChapter(current);
+    }
+
+    syncActiveChapter(currentTime) {
+        if (!this.chapters.length || !Number.isFinite(currentTime)) return;
+        let index = 0;
+        for (let i = this.chapters.length - 1; i >= 0; i--) {
+            if (currentTime >= Number(this.chapters[i].startSeconds || 0)) { index = i; break; }
         }
+        if (index === this.currentChapterIndex && this.elements.chapterList?.children?.[index]?.classList.contains('active')) return;
+        this.currentChapterIndex = index;
+        this.updateChapterPill(this.chapters[index].title || `Chapter ${index + 1}`);
+        this.elements.chapterList?.querySelectorAll('.chapter-item').forEach((item, i) => item.classList.toggle('active', i === index));
     }
 
     onLocalLoadedMetadata() {
