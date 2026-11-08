@@ -1,3 +1,22 @@
+# BluePeak Vinyl Player v1.2.0
+
+## Added
+
+- Low-memory streaming video export using `MediaRecorder`.
+- Vinyl-and-chapters export layout with active chapter highlighting.
+- Export uses the default `images/vinyl.png` artwork instead of track cover art.
+- Export output is streamed as WebM instead of buffering every frame in FFmpeg WASM.
+
+## Improved
+
+- Video export no longer stores a full frame sequence in the FFmpeg virtual filesystem.
+- Export cleanup stops canvas/audio capture tracks after completion or cancellation.
+
+## Attribution
+
+- BluePeak Vinyl Player contributors, including Codex-assisted implementation.
+- Liquid glass styling inspired by the project’s YTXTube reference integration.
+
 # BluePeak Vinyl Player v1.1.0
 
 ## Added
