@@ -5,7 +5,6 @@ import { HolidayManager } from './HolidayManager.js';
 import { ExportEngine } from './ExportEngine.js';
 import { YouTubeService } from './YouTubeService.js';
 
-import { YouTubeService } from './YouTube.js';
 
 // ── Supported file extensions (lowercase, no dots) ──
 const SUPPORTED_AUDIO = new Set([
@@ -113,6 +112,7 @@ export class VinylPlayer {
             songContextText: document.getElementById('songContextText'),
             // Playback speed
             speedSelect: document.getElementById('speedSelect')
+            ,uiScaleSelect: document.getElementById('uiScaleSelect')
         };
         this.elements.youtubeMount = document.getElementById('vinylTrack');
         this.elements.navQueueBtn = document.getElementById('navQueueBtn');
@@ -121,6 +121,7 @@ export class VinylPlayer {
         this.elements.navLyricsBtn = document.getElementById('navLyricsBtn');
         this.elements.navChaptersBtn = document.getElementById('navChaptersBtn');
         this.elements.timestampBtn = document.getElementById('timestampBtn');
+        this.applyUiScale(localStorage.getItem('uiScale') || '110');
         // Opening state: show the grooved record asset from .vinyl-record.
         // The circular audio cover is applied only after a track is loaded.
         this.elements.vinylCover.style.backgroundImage = 'none';
@@ -418,6 +419,7 @@ export class VinylPlayer {
                 this.updateLanguage(e.target.value);
             });
         }
+        this.elements.uiScaleSelect?.addEventListener('change', (event) => this.applyUiScale(event.target.value));
 
         // Settings Toggles
         if (this.elements.showLocalVideoToggle) {
@@ -1346,6 +1348,13 @@ export class VinylPlayer {
         } else if (this.isPlaying && !this.isVideo) {
             this.toggleVideoMode(false);
         }
+    }
+
+    applyUiScale(value) {
+        const scale = Math.min(1.25, Math.max(0.8, Number(value) / 100 || 1.1));
+        document.body.style.zoom = String(scale);
+        if (this.elements.uiScaleSelect) this.elements.uiScaleSelect.value = String(Math.round(scale * 100));
+        localStorage.setItem('uiScale', String(Math.round(scale * 100)));
     }
 
     // Glass Mode

@@ -160,7 +160,7 @@ input[type="file"] {
 
 @media (max-width: 1400px) {
     .container {
-        scale: 0.9;
+        scale: 0.98;
     }
 }
 
