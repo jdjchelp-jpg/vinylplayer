@@ -5,6 +5,8 @@ import { HolidayManager } from './HolidayManager.js';
 import { ExportEngine } from './ExportEngine.js';
 import { YouTubeService } from './YouTubeService.js';
 
+import { YouTubeService } from './YouTube.js';
+
 // ── Supported file extensions (lowercase, no dots) ──
 const SUPPORTED_AUDIO = new Set([
     'mp3','m4a','flac','wav','wma','ogg','oga','opus','alac','aiff','aif',
@@ -25,6 +27,8 @@ export class VinylPlayer {
         this.playlistManager = new PlaylistManager();
         this.youtubePlayer = null;
         this.isYouTube = false;
+
+        this.youtubeService = new YouTubeService();
 
         this.isPlaying = false;
         this.isDragging = false;
@@ -360,7 +364,10 @@ export class VinylPlayer {
         // Settings
         if (this.elements.settingsBtn) {
             this.elements.settingsBtn.addEventListener('click', () => {
-                this.elements.settingsModal.style.display = 'flex';
+                if (this.elements.settingsModal) {
+                    this.elements.settingsModal.style.display = 'flex';
+                    this.elements.settingsModal.setAttribute('aria-hidden', 'false');
+                }
                 this.elements.menuItems.classList.remove('active'); // Close menu
             });
         }
@@ -385,8 +392,25 @@ export class VinylPlayer {
         if (this.elements.settingsCloseBtn) {
             this.elements.settingsCloseBtn.addEventListener('click', () => {
                 this.elements.settingsModal.style.display = 'none';
+                this.elements.settingsModal.setAttribute('aria-hidden', 'true');
             });
         }
+
+        if (this.elements.settingsModal) {
+            this.elements.settingsModal.addEventListener('click', (event) => {
+                if (event.target === this.elements.settingsModal) {
+                    this.elements.settingsModal.style.display = 'none';
+                    this.elements.settingsModal.setAttribute('aria-hidden', 'true');
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && this.elements.settingsModal?.style.display === 'flex') {
+                this.elements.settingsModal.style.display = 'none';
+                this.elements.settingsModal.setAttribute('aria-hidden', 'true');
+            }
+        });
 
         // Language Select
         if (this.elements.languageSelect) {
@@ -804,6 +828,11 @@ export class VinylPlayer {
         if (!url) return;
 
         try {
+            if (this.youtubeService.isYouTubeUrl(url)) {
+                await this.youtubeService.loadYouTubeUrl(url, this);
+                return;
+            }
+
             if (!url.startsWith('http')) {
                 throw new Error('Please enter a valid URL');
             }
