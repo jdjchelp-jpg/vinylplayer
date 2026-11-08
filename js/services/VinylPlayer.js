@@ -2261,6 +2261,17 @@ export class VinylPlayer {
         this.ffmpegLoaded = false;
     }
 
+    async _getExportCoverBytes() {
+        const source = this.albumCoverImg?.src;
+        if (source?.startsWith('data:')) {
+            const base64 = source.split(',')[1] || '';
+            const binary = atob(base64);
+            return new Uint8Array([...binary].map((char) => char.charCodeAt(0)));
+        }
+        const response = await fetch(new URL('images/vinyl.png', document.baseURI));
+        return new Uint8Array(await response.arrayBuffer());
+    }
+
     /** Extract metadata (duration, bitrate, codec) from current file. */
     async ffmpegGetMetadata() {
         const file = this.currentFile;
@@ -2376,6 +2387,16 @@ export class VinylPlayer {
             } else {
                 args.push('-map_metadata', '0');
             }
+            const coverName = 'export_cover.png';
+            const supportsEmbeddedCover = ['mp3', 'm4a', 'm4b', 'flac'].includes(format);
+            const metadataInputIndex = metadataName ? 1 : null;
+            args.push('-map', '0:a:0');
+            if (supportsEmbeddedCover) {
+                await this.ffmpeg.writeFile(coverName, await this._getExportCoverBytes());
+                const coverInputIndex = metadataName ? 2 : 1;
+                args.push('-i', coverName, '-map', `${coverInputIndex}:v:0`);
+            }
+            if (metadataInputIndex !== null) args.push('-map_metadata', String(metadataInputIndex));
             const codecArgs = {
                 mp3: ['-c:a', 'libmp3lame', '-b:a', '192k', '-id3v2_version', '3'],
                 m4a: ['-c:a', 'aac', '-b:a', '192k'],
@@ -2384,7 +2405,8 @@ export class VinylPlayer {
                 wav: ['-c:a', 'pcm_s16le'],
                 ogg: ['-c:a', 'libopus', '-b:a', '128k']
             }[format] || ['-c:a', 'libmp3lame', '-b:a', '192k'];
-            args.push(...codecArgs, outputName);
+            const coverArgs = supportsEmbeddedCover ? ['-c:v', 'png', '-disposition:v:0', 'attached_pic'] : [];
+            args.push(...codecArgs, ...coverArgs, outputName);
             await this.ffmpeg.exec(args);
 
             this._ffmpegSetStatus('Reading output...');
@@ -2394,6 +2416,7 @@ export class VinylPlayer {
                 this.ffmpeg.deleteFile(inputName).catch(() => { }),
                 this.ffmpeg.deleteFile(outputName).catch(() => { }),
                 metadataName ? this.ffmpeg.deleteFile(metadataName).catch(() => { }) : Promise.resolve(),
+                this.ffmpeg.deleteFile(coverName).catch(() => { }),
             ]);
 
             this._ffmpegSetProgress(100);
