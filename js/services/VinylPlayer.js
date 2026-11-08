@@ -2214,6 +2214,14 @@ export class VinylPlayer {
         URL.revokeObjectURL(url);
     }
 
+    _ffmpegRelease() {
+        if (this.ffmpeg) {
+            try { this.ffmpeg.terminate(); } catch (_) { /* already closed */ }
+        }
+        this.ffmpeg = null;
+        this.ffmpegLoaded = false;
+    }
+
     /** Extract metadata (duration, bitrate, codec) from current file. */
     async ffmpegGetMetadata() {
         const file = this.currentFile;
@@ -2245,6 +2253,7 @@ export class VinylPlayer {
 
             this.ffmpeg.off('log', logHandler);
             await this.ffmpeg.deleteFile(inputName).catch(() => { });
+            this._ffmpegRelease();
 
             // Parse log
             const durationMatch = /Duration:\s*([\d:\.]+)/.exec(log);
@@ -2273,6 +2282,7 @@ export class VinylPlayer {
             this._ffmpegSetStatus('Analysis complete.');
         } catch (err) {
             console.error('FFmpeg metadata error:', err);
+            this._ffmpegRelease();
             if (grid) grid.innerHTML = `<div class="ffmpeg-meta-loading" style="color:hsl(0,70%,65%)">${err.message}</div>`;
             this._ffmpegSetStatus('Error: ' + err.message);
         }
@@ -2337,8 +2347,10 @@ export class VinylPlayer {
             this._ffmpegSetProgress(100);
             this._ffmpegSetStatus('Done! Downloading...');
             this._ffmpegDownload(data, outputName);
+            this._ffmpegRelease();
         } catch (err) {
             console.error('FFmpeg convert error:', err);
+            this._ffmpegRelease();
             this._ffmpegSetStatus('Error: ' + err.message);
             this.showNotification('Conversion failed: ' + err.message, 'error');
         }
@@ -2388,8 +2400,10 @@ export class VinylPlayer {
             this._ffmpegSetProgress(100);
             this._ffmpegSetStatus('Done! Downloading...');
             this._ffmpegDownload(data, outputName);
+            this._ffmpegRelease();
         } catch (err) {
             console.error('FFmpeg trim error:', err);
+            this._ffmpegRelease();
             this._ffmpegSetStatus('Error: ' + err.message);
             this.showNotification('Trim failed: ' + err.message, 'error');
         }
