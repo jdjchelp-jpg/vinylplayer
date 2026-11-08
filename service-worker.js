@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vinyl-player-v29';
+const CACHE_NAME = 'vinyl-player-v30';
 const ASSETS = [
     './',
     './index.html',

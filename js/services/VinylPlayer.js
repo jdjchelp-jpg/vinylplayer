@@ -1159,7 +1159,9 @@ export class VinylPlayer {
         this.elements.textTitle.textContent = track.title;
         if (this.elements.navPlayerBtn) this.elements.navPlayerBtn.textContent = track.title;
         this.elements.textAuthor.textContent = "Local File";
-        this.elements.vinylCover.style.backgroundImage = "url('images/vinyl-cover.png')";
+        // Use the grooved vinyl artwork for tracks without embedded cover art.
+        // Embedded artwork below still replaces this fallback when available.
+        this.elements.vinylCover.style.backgroundImage = "url('images/vinyl.png')";
         this.elements.vinylCover.classList.remove('has-track-cover');
 
         this.updateDesc(this.elements.textAuthor.textContent, track.title);
