@@ -1741,6 +1741,10 @@ export class VinylPlayer {
     }
 
     renderToCanvas(ctx, width, height, time) {
+        if (this.exportMode) {
+            this.renderExportCanvas(ctx, width, height, time);
+            return;
+        }
         if (this.elements.renderModeToggle && this.elements.renderModeToggle.checked) {
             ctx.fillStyle = "#191616";
             ctx.fillRect(0, 0, width, height);
@@ -1801,6 +1805,52 @@ export class VinylPlayer {
         ctx.fillRect(50, height - 80, barWidth * progress, barHeight);
         const timeStr = `${this.formatTime(time)} / ${this.formatTime(duration)}`;
         ctx.fillText(timeStr, width - 200, height - 110);
+    }
+
+    renderExportCanvas(ctx, width, height, time) {
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, '#132b4d');
+        gradient.addColorStop(1, '#090f1d');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+        const panelWidth = width * 0.56;
+        const recordSize = Math.min(height * 0.82, panelWidth * 0.9);
+        const cx = panelWidth * 0.48;
+        const cy = height * 0.5;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, recordSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        if (this.exportVinylImage?.complete) {
+            const scale = Math.max(recordSize / this.exportVinylImage.width, recordSize / this.exportVinylImage.height);
+            const iw = this.exportVinylImage.width * scale;
+            const ih = this.exportVinylImage.height * scale;
+            ctx.drawImage(this.exportVinylImage, cx - iw / 2, cy - ih / 2, iw, ih);
+        } else {
+            ctx.fillStyle = '#090909'; ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,.2)';
+            for (let i = 1; i < 18; i++) { ctx.beginPath(); ctx.arc(cx, cy, recordSize * i / 36, 0, Math.PI * 2); ctx.stroke(); }
+        }
+        ctx.restore();
+        ctx.fillStyle = 'rgba(255,255,255,.08)';
+        ctx.fillRect(panelWidth, 0, 2, height);
+        ctx.fillStyle = '#fff';
+        ctx.font = `700 ${Math.max(22, height * .045)}px Arial`;
+        ctx.fillText('Chapters / Timestamps', panelWidth + 34, 64);
+        const chapters = this.chapters || [];
+        const duration = this.isVideo ? this.localVideo.duration : this.localAudio.duration;
+        let active = 0;
+        chapters.forEach((chapter, index) => { if (time >= Number(chapter.startSeconds || 0)) active = index; });
+        ctx.font = `${Math.max(16, height * .026)}px Arial`;
+        chapters.slice(0, 18).forEach((chapter, index) => {
+            const y = 112 + index * Math.max(28, height * .045);
+            ctx.fillStyle = index === active ? '#ffffff' : 'rgba(255,255,255,.62)';
+            ctx.font = `${index === active ? '700' : '400'} ${Math.max(16, height * .026)}px Arial`;
+            ctx.fillText(`${this.formatTime(chapter.startSeconds)}  ${chapter.title || `Chapter ${index + 1}`}`, panelWidth + 34, y);
+        });
+        ctx.fillStyle = 'rgba(255,255,255,.65)';
+        ctx.font = `${Math.max(14, height * .022)}px Arial`;
+        ctx.fillText(`${this.formatTime(time)} / ${this.formatTime(duration || 0)}`, panelWidth + 34, height - 34);
     }
 
     // Export preparation and audio capture methods
