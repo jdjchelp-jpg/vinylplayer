@@ -3,6 +3,7 @@ import { translations } from './i18n.js';
 import { HolidayManager } from './HolidayManager.js';
 
 import { ExportEngine } from './ExportEngine.js';
+import { YouTubeService } from './YouTubeService.js';
 
 import { YouTubeService } from './YouTube.js';
 
@@ -24,6 +25,8 @@ export class VinylPlayer {
     constructor() {
         console.log("VinylPlayer constructor started");
         this.playlistManager = new PlaylistManager();
+        this.youtubePlayer = null;
+        this.isYouTube = false;
 
         this.youtubeService = new YouTubeService();
 
@@ -85,6 +88,7 @@ export class VinylPlayer {
             exportVideoBtn: document.getElementById('exportVideoBtn'),
             renderModeToggle: document.getElementById('renderModeToggle'),
             glassModeToggle: document.getElementById('glassModeToggle'),
+            oldYouTubeModeToggle: document.getElementById('oldYouTubeModeToggle'),
             // Queue panel
             queuePanel: document.getElementById('queuePanel'),
             queueList: document.getElementById('queueList'),
@@ -110,6 +114,17 @@ export class VinylPlayer {
             // Playback speed
             speedSelect: document.getElementById('speedSelect')
         };
+        this.elements.youtubeMount = document.getElementById('vinylTrack');
+        this.elements.navQueueBtn = document.getElementById('navQueueBtn');
+        this.elements.navSettingsBtn = document.getElementById('navSettingsBtn');
+        this.elements.navPlayerBtn = document.getElementById('navPlayerBtn');
+        this.elements.navLyricsBtn = document.getElementById('navLyricsBtn');
+        this.elements.navChaptersBtn = document.getElementById('navChaptersBtn');
+        this.elements.timestampBtn = document.getElementById('timestampBtn');
+        // Opening state: show the grooved record asset from .vinyl-record.
+        // The circular audio cover is applied only after a track is loaded.
+        this.elements.vinylCover.style.backgroundImage = 'none';
+        this.elements.vinylCover.classList.remove('has-track-cover');
 
         this.deferredPrompt = null;
         try {
@@ -157,10 +172,23 @@ export class VinylPlayer {
             if (this.elements.installBtn) {
                 this.elements.installBtn.style.display = 'flex';
             }
+        }, (info) => {
+            if (Array.isArray(info.playlist) && info.playlist.length) {
+                this.syncYouTubePlaylist(info.playlist, playlistId);
+            }
+            if (Number.isFinite(info.currentTime) && Number.isFinite(info.duration)) {
+                this.elements.currentTime.textContent = this.formatTime(info.currentTime);
+                this.elements.duration.textContent = this.formatTime(info.duration);
+                this.elements.progressBar.value = info.duration ? (info.currentTime / info.duration) * 100 : 0;
+                this.syncActiveChapter(info.currentTime);
+            }
         });
 
         // Restore Glass Mode from localStorage
         this.restoreGlassMode();
+        const oldYouTubeMode = localStorage.getItem('oldYouTubeMode') === 'true';
+        if (this.elements.oldYouTubeModeToggle) this.elements.oldYouTubeModeToggle.checked = oldYouTubeMode;
+        document.body.classList.toggle('old-youtube-mode', oldYouTubeMode);
     }
 
 
@@ -250,20 +278,19 @@ export class VinylPlayer {
             this.elements.currentTime.textContent = this.formatTime(current);
         }
 
-        // Auto-update chapter pill as playback crosses chapter boundaries
-        if (this.chapters.length > 1 && !isNaN(current) && this.elements.showChaptersToggle && this.elements.showChaptersToggle.checked) {
-            let idx = 0;
-            for (let i = this.chapters.length - 1; i >= 0; i--) {
-                if (current >= this.chapters[i].startSeconds) {
-                    idx = i;
-                    break;
-                }
-            }
-            if (idx !== this.currentChapterIndex) {
-                this.currentChapterIndex = idx;
-                this.updateChapterPill(this.chapters[idx].title);
-            }
+        this.syncActiveChapter(current);
+    }
+
+    syncActiveChapter(currentTime) {
+        if (!this.chapters.length || !Number.isFinite(currentTime)) return;
+        let index = 0;
+        for (let i = this.chapters.length - 1; i >= 0; i--) {
+            if (currentTime >= Number(this.chapters[i].startSeconds || 0)) { index = i; break; }
         }
+        if (index === this.currentChapterIndex && this.elements.chapterList?.children?.[index]?.classList.contains('active')) return;
+        this.currentChapterIndex = index;
+        this.updateChapterPill(this.chapters[index].title || `Chapter ${index + 1}`);
+        this.elements.chapterList?.querySelectorAll('.chapter-item').forEach((item, i) => item.classList.toggle('active', i === index));
     }
 
     onLocalLoadedMetadata() {
@@ -325,6 +352,14 @@ export class VinylPlayer {
                 this.downloadPlaylist();
             });
         }
+        const importPlaylistBtn = document.getElementById('importPlaylistBtn');
+        const playlistFileInput = document.getElementById('playlistFileInput');
+        importPlaylistBtn?.addEventListener('click', () => playlistFileInput?.click());
+        playlistFileInput?.addEventListener('change', async (event) => {
+            const file = event.target.files?.[0];
+            if (file) await this.importPlaylistText(await file.text());
+            event.target.value = '';
+        });
 
         // Settings
         if (this.elements.settingsBtn) {
@@ -336,6 +371,23 @@ export class VinylPlayer {
                 this.elements.menuItems.classList.remove('active'); // Close menu
             });
         }
+
+        this.elements.navSettingsBtn?.addEventListener('click', () => this.elements.settingsBtn?.click());
+        this.elements.navQueueBtn?.addEventListener('click', () => this.toggleQueuePanel(true));
+        this.elements.navLyricsBtn?.addEventListener('click', () => {
+            if (this.elements.lyricsModal) this.elements.lyricsModal.style.display = 'flex';
+        });
+        this.elements.navChaptersBtn?.addEventListener('click', () => {
+            if (!this.chapters.length) {
+                this.showNotification('No chapters available for this track', 'info');
+                return;
+            }
+            if (this.elements.showChaptersToggle && !this.elements.showChaptersToggle.checked) {
+                this.elements.showChaptersToggle.checked = true;
+                this.updateSettings();
+            }
+            this.toggleChapterMenu();
+        });
 
         if (this.elements.settingsCloseBtn) {
             this.elements.settingsCloseBtn.addEventListener('click', () => {
@@ -446,6 +498,11 @@ export class VinylPlayer {
         if (this.elements.progressBar) {
             this.elements.progressBar.addEventListener('input', (e) => {
                 const val = e.target.value;
+                if (this.isYouTube && this.youtubePlayer) {
+                    const duration = parseFloat(this.elements.duration.dataset.seconds || '0');
+                    if (duration) this.youtubePlayer.command('seekTo', [duration * (val / 100), true]);
+                    return;
+                }
                 if (this.isLocalFile) {
                     const media = this.isVideo ? this.localVideo : this.localAudio;
                     if (media.duration) {
@@ -581,6 +638,12 @@ export class VinylPlayer {
                 this.setGlassMode(this.elements.glassModeToggle.checked);
             });
         }
+        this.elements.oldYouTubeModeToggle?.addEventListener('change', (event) => {
+            const enabled = event.target.checked;
+            localStorage.setItem('oldYouTubeMode', enabled ? 'true' : 'false');
+            document.body.classList.toggle('old-youtube-mode', enabled);
+            this.elements.youtubeMount?.classList.toggle('old-youtube-video', enabled);
+        });
 
         // Queue panel toggle
         if (this.elements.queueToggleBtn) {
@@ -661,9 +724,10 @@ export class VinylPlayer {
             }
 
             const isVideo = SUPPORTED_VIDEO.has(ext) || file.type.startsWith('video/');
+            const displayName = file.name.replace(/\.[^.]+$/, '');
 
             newTracks.push({
-                title: file.name,
+                title: displayName,
                 isVideo: isVideo,
                 isLocal: true,
                 file: file
@@ -773,6 +837,11 @@ export class VinylPlayer {
                 throw new Error('Please enter a valid URL');
             }
 
+            if (YouTubeService.isYouTubeUrl(url)) {
+                await this.loadYouTubeTrack(url);
+                return;
+            }
+
             // Fetch the audio file from the URL
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
@@ -792,6 +861,91 @@ export class VinylPlayer {
         }
     }
 
+    async loadYouTubeTrack(url) {
+        const videoId = YouTubeService.extractId(url);
+        const playlistId = YouTubeService.extractPlaylistId(url);
+        if ((!videoId && !playlistId) || !this.elements.youtubeMount) throw new Error('Invalid YouTube URL');
+
+        this.youtubePlayer?.destroy();
+        this.isYouTube = true;
+        this.isLocalFile = false;
+        this.isVideo = true;
+        this.localVideo?.pause();
+        this.localVideo?.classList.add('hidden-media');
+        this.elements.youtubeMount.classList.remove('hidden-media');
+        this.elements.youtubeMount.classList.add('youtube-active');
+        this.elements.container.classList.add('youtube-active');
+        this.elements.container.classList.remove('audio-mode-active');
+        const existingIndex = this.playlistManager.playlist.findIndex((track) => track.youtubeUrl === url);
+        if (existingIndex >= 0) {
+            this.playlistManager.currentTrackIndex = existingIndex;
+        } else {
+            this.playlistManager.addTracks([{ title: playlistId ? `YouTube playlist (${playlistId})` : `YouTube video (${videoId})`, youtubeUrl: url, youtubeVideoId: videoId, youtubePlaylistId: playlistId, isYouTube: true, isVideo: true }]);
+            this.playlistManager.currentTrackIndex = this.playlistManager.playlist.length - 1;
+        }
+        this.renderQueue();
+        this.youtubePlayer = YouTubeService.createPlayer(this.elements.youtubeMount, videoId, (state) => {
+            // YouTube IFrame states: 1 playing, 2 paused, 0 ended.
+            if (state === 1) this.onYouTubePlay();
+            if (state === 2 || state === 0) this.onYouTubePause();
+        }, (info) => {
+            if (Number.isFinite(info.currentTime) && Number.isFinite(info.duration)) {
+                this.elements.currentTime.textContent = this.formatTime(info.currentTime);
+                this.elements.duration.textContent = this.formatTime(info.duration);
+                this.elements.duration.dataset.seconds = String(info.duration);
+                this.elements.progressBar.value = info.duration ? (info.currentTime / info.duration) * 100 : 0;
+            }
+        }, playlistId);
+        this.updateYouTubeInfo(videoId, playlistId);
+        this.showNotification(playlistId ? 'YouTube playlist loaded' : 'YouTube video loaded', 'success');
+    }
+
+    syncYouTubePlaylist(videoIds, playlistId) {
+        if (!playlistId) return;
+        const existing = new Set(this.playlistManager.playlist.filter(track => track.isYouTube).map(track => track.youtubeVideoId));
+        const tracks = videoIds
+            .filter(id => typeof id === 'string' && id.length)
+            .filter(id => !existing.has(id))
+            .map((id, index) => ({
+                title: `YouTube item ${index + 1}`,
+                youtubeUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(id)}&list=${encodeURIComponent(playlistId)}`,
+                youtubeVideoId: id,
+                youtubePlaylistId: playlistId,
+                isYouTube: true,
+                isVideo: true
+            }));
+        if (tracks.length) {
+            this.playlistManager.addTracks(tracks);
+            this.renderQueue();
+        }
+    }
+
+    updateYouTubeInfo(videoId, playlistId = null) {
+        const title = playlistId ? `YouTube playlist (${playlistId})` : `YouTube video (${videoId})`;
+        this.elements.textTitle.textContent = title;
+        this.elements.textAuthor.textContent = 'YouTube';
+        if (this.elements.navPlayerBtn) this.elements.navPlayerBtn.textContent = title;
+        if (videoId) {
+            this.elements.vinylCover.style.backgroundImage = `url('https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg')`;
+            this.elements.vinylCover.classList.add('has-track-cover');
+        }
+        this.updateSongCapsule(title);
+        this.updateDesc('YouTube', title);
+    }
+
+    onYouTubePlay() {
+        this.isPlaying = true;
+        this.startRotation();
+        this.moveToneArmToRecord();
+        this.updatePlayButtonIcon(true);
+    }
+
+    onYouTubePause() {
+        this.isPlaying = false;
+        this.stopRotation();
+        this.updatePlayButtonIcon(false);
+    }
+
     async playTrack(track) {
         if (!track) return;
 
@@ -803,7 +957,17 @@ export class VinylPlayer {
             track = { id: track, isLocal: false, isVideo: true };
         }
 
+        if (track.isYouTube && track.youtubeUrl) {
+            await this.loadYouTubeTrack(track.youtubeUrl);
+            return;
+        }
+
         console.log("playTrack called with:", track);
+
+        this.elements.youtubeMount?.classList.remove('youtube-active');
+        this.elements.youtubeMount?.classList.add('hidden-media');
+        this.elements.container?.classList.remove('youtube-active');
+        this.isYouTube = false;
 
         // Local file playback only
         this.isLocalFile = true;
@@ -870,11 +1034,19 @@ export class VinylPlayer {
     }
 
     play() {
+        if (this.isYouTube) {
+            this.youtubePlayer?.command('playVideo');
+            return;
+        }
         const media = this.isVideo ? this.localVideo : this.localAudio;
         media.play();
     }
 
     pause() {
+        if (this.isYouTube) {
+            this.youtubePlayer?.command('pauseVideo');
+            return;
+        }
         const media = this.isVideo ? this.localVideo : this.localAudio;
         media.pause();
     }
@@ -902,13 +1074,16 @@ export class VinylPlayer {
         this.volume = vol;
         this.localAudio.volume = vol / 100;
         this.localVideo.volume = vol / 100;
+        if (this.isYouTube) this.youtubePlayer?.command('setVolume', [vol]);
     }
 
     setPlaybackSpeed(speed, silent = false) {
+        speed = Math.min(2, Math.max(0.25, speed));
         // Apply to local audio
         this.localAudio.playbackRate = speed;
         // Apply to local video
         this.localVideo.playbackRate = speed;
+        if (this.isYouTube) this.youtubePlayer?.command('setPlaybackRate', [speed]);
         if (!silent) this.showNotification(`Playback speed: ${speed}x`, 'success');
     }
 
@@ -952,8 +1127,10 @@ export class VinylPlayer {
 
         const track = trackOrId;
         this.elements.textTitle.textContent = track.title;
+        if (this.elements.navPlayerBtn) this.elements.navPlayerBtn.textContent = track.title;
         this.elements.textAuthor.textContent = "Local File";
         this.elements.vinylCover.style.backgroundImage = "url('images/vinyl-cover.png')";
+        this.elements.vinylCover.classList.remove('has-track-cover');
 
         this.updateDesc(this.elements.textAuthor.textContent, track.title);
 
@@ -980,6 +1157,7 @@ export class VinylPlayer {
                         }
                         base64 = "data:" + format + ";base64," + window.btoa(base64String);
                         this.elements.vinylCover.style.backgroundImage = `url('${base64}')`;
+                        this.elements.vinylCover.classList.add('has-track-cover');
                         // Set albumCoverImg for canvas export
                         this.albumCoverImg = new Image();
                         this.albumCoverImg.crossOrigin = "Anonymous";
@@ -1032,7 +1210,7 @@ export class VinylPlayer {
         let content = "Vinyl Player Playlist\n\n";
         if (this.playlistManager.queue.length > 0) {
             this.playlistManager.queue.forEach((track, index) => {
-                content += `${index + 1}. ${track.title || 'Unknown'}\n`;
+                content += `${track.youtubeUrl || track.source || track.title || 'Unknown'}\n`;
             });
         }
         else {
@@ -1046,6 +1224,24 @@ export class VinylPlayer {
         a.download = 'playlist.txt';
         a.click();
         window.URL.revokeObjectURL(url);
+    }
+
+    async importPlaylistText(text) {
+        const urls = String(text || '').split(/\r?\n/)
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#') && /^https?:\/\//i.test(line));
+        const supported = urls.filter(url => YouTubeService.isYouTubeUrl(url));
+        if (!supported.length) {
+            this.showNotification('No supported YouTube links found', 'error');
+            return;
+        }
+        for (const url of supported) {
+            if (!this.playlistManager.playlist.some(track => track.youtubeUrl === url)) {
+                this.playlistManager.addTracks([{ title: 'YouTube item', youtubeUrl: url, isYouTube: true, isVideo: true }]);
+            }
+        }
+        this.renderQueue();
+        this.showNotification(`Imported ${supported.length} playlist item${supported.length === 1 ? '' : 's'}`, 'success');
     }
 
     toggleVideoMode(enable) {
@@ -1484,11 +1680,25 @@ export class VinylPlayer {
             return;
         }
 
-        this.chapters.forEach(chapter => {
+        const chapterHeader = this.elements.chapterMenu?.querySelector('.chapter-header');
+        if (chapterHeader && !chapterHeader.querySelector('.chapter-count')) {
+            const count = document.createElement('span');
+            count.className = 'chapter-count';
+            chapterHeader.insertBefore(count, chapterHeader.querySelector('.close-btn'));
+        }
+        const count = this.elements.chapterMenu?.querySelector('.chapter-count');
+        if (count) count.textContent = `${this.chapters.length} chapters`;
+
+        this.chapters.forEach((chapter, index) => {
             const div = document.createElement('div');
-            div.className = 'chapter-item';
-            div.innerHTML = `<span>${chapter.title}</span><span class="chapter-time">${this.formatTime(chapter.startSeconds)}</span>`;
-            div.addEventListener('click', () => {
+            div.className = `chapter-item${index === this.currentChapterIndex ? ' active' : ''}`;
+            div.setAttribute('role', 'button');
+            div.setAttribute('tabindex', '0');
+            div.innerHTML = `<span class="chapter-number">${String(index + 1).padStart(2, '0')}</span><span class="chapter-item-title">${this._escHtml(chapter.title || `Chapter ${index + 1}`)}</span><span class="chapter-time">${this.formatTime(chapter.startSeconds)}</span>`;
+            const selectChapter = () => {
+                this.chapters.forEach((_, chapterIndex) => {
+                    this.elements.chapterList.children[chapterIndex]?.classList.toggle('active', chapterIndex === index);
+                });
                 if (this.isLocalFile) {
                     const media = this.isVideo ? this.localVideo : this.localAudio;
                     media.currentTime = chapter.startSeconds;
@@ -1496,23 +1706,19 @@ export class VinylPlayer {
                     this.localAudio.currentTime = chapter.startSeconds;
                 }
                 this.elements.chapterMenu.style.display = 'none';
-                this.currentChapterIndex = chapter.index - 1;
+                this.currentChapterIndex = index;
                 this.updateChapterPill(chapter.title);
+            };
+            div.addEventListener('click', selectChapter);
+            div.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectChapter(); }
             });
             this.elements.chapterList.appendChild(div);
         });
 
-        if (this.logs && this.logs.length > 0) {
-            const logContainer = document.createElement('div');
-            logContainer.className = 'chapter-logs';
-            this.logs.forEach(log => {
-                const logItem = document.createElement('div');
-                logItem.className = 'log-item';
-                logItem.textContent = `> ${log}`;
-                logContainer.appendChild(logItem);
-            });
-            this.elements.chapterList.appendChild(logContainer);
-        }
+        // Extraction diagnostics belong in the console/debug output, not in the
+        // chapter picker. Keeping the panel focused makes long M4B tracklists
+        // readable and selectable.
     }
 
     async installApp() {
@@ -2037,6 +2243,14 @@ export class VinylPlayer {
         URL.revokeObjectURL(url);
     }
 
+    _ffmpegRelease() {
+        if (this.ffmpeg) {
+            try { this.ffmpeg.terminate(); } catch (_) { /* already closed */ }
+        }
+        this.ffmpeg = null;
+        this.ffmpegLoaded = false;
+    }
+
     /** Extract metadata (duration, bitrate, codec) from current file. */
     async ffmpegGetMetadata() {
         const file = this.currentFile;
@@ -2068,6 +2282,7 @@ export class VinylPlayer {
 
             this.ffmpeg.off('log', logHandler);
             await this.ffmpeg.deleteFile(inputName).catch(() => { });
+            this._ffmpegRelease();
 
             // Parse log
             const durationMatch = /Duration:\s*([\d:\.]+)/.exec(log);
@@ -2096,6 +2311,7 @@ export class VinylPlayer {
             this._ffmpegSetStatus('Analysis complete.');
         } catch (err) {
             console.error('FFmpeg metadata error:', err);
+            this._ffmpegRelease();
             if (grid) grid.innerHTML = `<div class="ffmpeg-meta-loading" style="color:hsl(0,70%,65%)">${err.message}</div>`;
             this._ffmpegSetStatus('Error: ' + err.message);
         }
@@ -2124,7 +2340,29 @@ export class VinylPlayer {
                 this._ffmpegSetProgress(15 + Math.round(progress * 75));
             });
 
-            await this.ffmpeg.exec(['-i', inputName, '-acodec', 'libmp3lame', '-b:a', '192k', outputName]);
+            // Carry the source metadata and write ID3v2 chapter markers when
+            // chapters were extracted from an audiobook/container.
+            const args = ['-i', inputName];
+            let metadataName = null;
+            if (Array.isArray(this.chapters) && this.chapters.length) {
+                metadataName = 'chapters.ffmeta';
+                const esc = (value) => String(value || '').replace(/\\/g, '\\\\').replace(/([#=;])/g, '\\$1').replace(/\r?\n/g, ' ');
+                const lines = [';FFMETADATA1'];
+                this.chapters.forEach((chapter, index) => {
+                    const start = Math.max(0, Math.round(Number(chapter.startSeconds || 0) * 1000));
+                    const next = this.chapters[index + 1];
+                    const end = next ? Math.max(start + 1, Math.round(Number(next.startSeconds || 0) * 1000)) : undefined;
+                    lines.push('[CHAPTER]', 'TIMEBASE=1/1000', `START=${start}`);
+                    if (end !== undefined) lines.push(`END=${end}`);
+                    lines.push(`title=${esc(chapter.title || `Chapter ${index + 1}`)}`);
+                });
+                await this.ffmpeg.writeFile(metadataName, new TextEncoder().encode(lines.join('\n')));
+                args.push('-i', metadataName, '-map_metadata', '1');
+            } else {
+                args.push('-map_metadata', '0');
+            }
+            args.push('-c:a', 'libmp3lame', '-b:a', '192k', '-id3v2_version', '3', outputName);
+            await this.ffmpeg.exec(args);
 
             this._ffmpegSetStatus('Reading output...');
             this._ffmpegSetProgress(92);
@@ -2132,13 +2370,16 @@ export class VinylPlayer {
             await Promise.all([
                 this.ffmpeg.deleteFile(inputName).catch(() => { }),
                 this.ffmpeg.deleteFile(outputName).catch(() => { }),
+                metadataName ? this.ffmpeg.deleteFile(metadataName).catch(() => { }) : Promise.resolve(),
             ]);
 
             this._ffmpegSetProgress(100);
             this._ffmpegSetStatus('Done! Downloading...');
             this._ffmpegDownload(data, outputName);
+            this._ffmpegRelease();
         } catch (err) {
             console.error('FFmpeg convert error:', err);
+            this._ffmpegRelease();
             this._ffmpegSetStatus('Error: ' + err.message);
             this.showNotification('Conversion failed: ' + err.message, 'error');
         }
@@ -2188,8 +2429,10 @@ export class VinylPlayer {
             this._ffmpegSetProgress(100);
             this._ffmpegSetStatus('Done! Downloading...');
             this._ffmpegDownload(data, outputName);
+            this._ffmpegRelease();
         } catch (err) {
             console.error('FFmpeg trim error:', err);
+            this._ffmpegRelease();
             this._ffmpegSetStatus('Error: ' + err.message);
             this.showNotification('Trim failed: ' + err.message, 'error');
         }

@@ -49,13 +49,19 @@
     <meta name="twitter:label2" content="Time to read">
     <meta name="twitter:data2" content="5 minutes">
     <!-- /Search Engine Optimisation-->
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/liquid-glass.css">
+    <link rel="stylesheet" href="css/styles.css?v=20261108">
     <script src="js/jsmediatags.js"></script>
 </head>
 
 <body draggable="false">
-    <div class="menu-container glass glass-spring">
+    <nav class="glass-nav" id="glassNav" aria-label="Player navigation">
+        <button class="glass-nav-item active" id="navPlayerBtn" type="button">Player</button>
+        <button class="glass-nav-item" id="navQueueBtn" type="button">Playlist</button>
+        <button class="glass-nav-item" id="navSettingsBtn" type="button">Settings</button>
+        <button class="glass-nav-item" id="navLyricsBtn" type="button">Lyrics</button>
+        <button class="glass-nav-item" id="navChaptersBtn" type="button">Chapters</button>
+    </nav>
+    <div class="menu-container">
         <button class="menu-toggle">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -107,6 +113,11 @@
                 </svg>
                 <span>Download Playlist</span>
             </button>
+            <button class="menu-item" id="importPlaylistBtn" type="button">
+                <svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>Import Playlist</span>
+            </button>
+            <input type="file" id="playlistFileInput" accept=".txt,.m3u,.m3u8" hidden>
             <button class="menu-item" id="exportVideoBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -133,15 +144,6 @@
                 </svg>
                 <span data-i18n="timestampInput">Add Chapters</span>
             </button>
-            <button class="menu-item" id="supportedFormatsBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                <span data-i18n="supportedFormats">Supported Formats</span>
-            </button>
             <button class="menu-item" id="audioToolsBtn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -155,7 +157,7 @@
         </div>
     </div>
 
-    <div class="container glass glass-spring" draggable="false">
+    <div class="container" draggable="false">
         <div class="album-cover" draggable="false"></div>
         <div class="vinyl-record" draggable="false">
             <div class="vinyl-cover" draggable="false">
@@ -213,15 +215,11 @@
                 <option value="1.5">1.5x</option>
                 <option value="1.75">1.75x</option>
                 <option value="2">2x</option>
-                <option value="2.5">2.5x</option>
-                <option value="3">3x</option>
-                <option value="4">4x</option>
-                <option value="5">5x</option>
             </select>
         </div>
     </div>
 
-    <div class="desc-container glass">
+    <div class="desc-container">
         <button class="desc-toggle">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -263,7 +261,7 @@
     </div>
 
     <!-- Queue Panel -->
-    <div class="queue-panel glass glass-spring" id="queuePanel">
+    <div class="queue-panel" id="queuePanel">
         <div class="queue-header">
             <span class="queue-title">Up Next</span>
             <span class="queue-count" id="queueCount">0 tracks</span>
@@ -362,12 +360,10 @@
                 </label>
             </div>
             <div class="setting-item">
-                <span data-i18n="glassMode">Glass Mode</span>
-                <label class="switch">
-                    <input type="checkbox" id="glassModeToggle">
-                    <span class="slider round"></span>
-                </label>
+                <span>Old YouTube Layout</span>
+                <label class="switch"><input type="checkbox" id="oldYouTubeModeToggle"><span class="slider round"></span></label>
             </div>
+            <button class="settings-action" id="supportedFormatsBtn" type="button">Supported formats</button>
             <div class="setting-item">
                 <span data-i18n="language">Language</span>
                 <select id="languageSelect">
@@ -499,6 +495,7 @@
                         <div class="format-badge recommended">.mp4</div>
                         <div class="format-badge recommended">.webm</div>
                         <div class="format-badge recommended">.m4b</div>
+                        <div class="format-badge recommended">.m4a</div>
                     </div>
                 </div>
             </div>
@@ -665,15 +662,7 @@
             <feGaussianBlur in="displaced" stdDeviation="0.5" result="blurred" />
             <feComposite in="blurred" in2="SourceGraphic" operator="over" />
         </filter>
-    <filter id="glassRefraction" x="-10%" y="-10%" width="120%" height="120%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="2" result="noise" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-        <feGaussianBlur in="displaced" stdDeviation="0.6" result="blurred" />
-        <feColorMatrix in="blurred" type="saturate" values="1.15" result="sat" />
-        <feBlend in="SourceGraphic" in2="sat" mode="screen" result="refracted" />
-        <feComposite in="refracted" in2="SourceGraphic" operator="over" />
-    </filter>
-</defs>
+    </defs>
 </svg>
 
 </html>

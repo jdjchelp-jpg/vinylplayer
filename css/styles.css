@@ -35,6 +35,84 @@ body {
     height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
+/* YTXTube-inspired glass navigation: a compact, low-memory control surface. */
+.glass-nav {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 1200;
+    display: flex;
+    gap: 4px;
+    padding: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(18, 28, 48, 0.44);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.12);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+}
+
+.glass-nav-item {
+    min-width: 84px;
+    padding: 9px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--clr-text-muted);
+    cursor: pointer;
+    font: 500 0.82rem/1 'Outfit', sans-serif;
+    transition: var(--transition-fast);
+}
+
+.glass-nav-item:hover,
+.glass-nav-item.active {
+    background: rgba(255, 255, 255, 0.16);
+    color: var(--clr-text);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.glass-nav-item:active { transform: scale(0.94); }
+
+#navPlayerBtn {
+    max-width: min(360px, 28vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .glass-nav { top: 12px; }
+    .glass-nav-item { min-width: 68px; padding-inline: 10px; }
+    .glass-nav { right: 12px; max-width: calc(100vw - 24px); overflow-x: auto; }
+    #vinylTrack.youtube-active { left: 50%; width: min(92vw, 480px); transform: translate(-50%, -50%); }
+}
+
+.chapter-menu {
+    width: min(420px, calc(100vw - 32px));
+    max-height: min(70vh, 620px);
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 26px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.035)), rgba(18, 28, 48, 0.76);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48), inset 0 1px rgba(255, 255, 255, 0.14);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    backdrop-filter: blur(28px) saturate(160%);
+}
+
+.chapter-item {
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.055);
+    transition: var(--transition-fast);
+}
+
+.chapter-item:hover,
+.chapter-item.active {
+    border-color: rgba(133, 193, 255, 0.46);
+    background: rgba(104, 168, 255, 0.16);
+    transform: translateX(3px);
+}
+
 html {
     height: -webkit-fill-available;
 }
@@ -156,9 +234,11 @@ input[type="file"] {
     border-radius: 50%;
     overflow: hidden;
     clip-path: circle(50%);
+    /* Preserve the complete audiobook/book cover; never crop its edges. */
     background-size: cover !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
+    background-color: transparent;
     box-sizing: border-box;
     position: absolute;
     animation: rotate 8s linear infinite;
@@ -169,6 +249,13 @@ input[type="file"] {
 
 .vinyl-cover.playing {
     animation-play-state: running;
+}
+
+/* Loaded rectangular artwork gets a safe circular inset so all lettering and
+   edges remain visible inside the record mask. */
+.vinyl-cover.has-track-cover {
+    background-size: 68% 68% !important;
+    background-color: #05070b;
 }
 
 @keyframes rotate {
@@ -977,6 +1064,104 @@ input:checked+.slider:before {
     pointer-events: none;
 }
 
+#vinylTrack.youtube-active {
+    top: 50%;
+    left: -255px;
+    width: min(480px, 42vw);
+    aspect-ratio: 16 / 9;
+    height: auto;
+    opacity: 1;
+    z-index: 180;
+    transform: translateY(-50%);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 22px;
+    background: #000;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    pointer-events: auto;
+}
+
+#vinylTrack.youtube-active iframe {
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+}
+
+/* Optional legacy composition: YouTube sits above/left of the vinyl rather
+   than replacing the center stage. */
+.old-youtube-mode #vinylTrack.youtube-active,
+#vinylTrack.youtube-active.old-youtube-video {
+    left: -390px;
+    width: min(720px, 55vw);
+    transform: translateY(-50%) rotate(-2deg);
+    border-radius: 14px;
+}
+
+.container.youtube-active .vinyl-cover,
+.container.youtube-active .song-info-capsule,
+.container.youtube-active .lyrics-toggle,
+.container.youtube-active .desc-container,
+.container.youtube-active ~ .desc-container {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* The top glass nav now owns Lyrics and Playlist. Hide the legacy capsule
+   buttons so the same actions are not rendered twice. */
+.desc-container .lyrics-toggle,
+.desc-container .queue-toggle-btn {
+    display: none !important;
+}
+
+.song-info-capsule {
+    max-width: min(58vw, 760px) !important;
+    overflow: hidden !important;
+}
+
+.song-title-text,
+.song-context-text {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Final override: older premium-control rules force these buttons to inline
+   flex with !important, so hide them with equal specificity at the end. */
+body .desc-container .lyrics-toggle,
+body .desc-container .queue-toggle-btn,
+body .desc-container .desc-toggle {
+    display: none !important;
+}
+
+/* The new glass navigation owns track context and actions. Remove the legacy
+   floating song-info capsule entirely. */
+body .desc-container {
+    display: none !important;
+}
+
+.container.youtube-active .vinyl-cover {
+    background-image: none !important;
+}
+
+@media (min-width: 601px) {
+    #vinylTrack.youtube-active {
+        left: -390px;
+        width: min(720px, 55vw);
+    }
+}
+
+.container:has(#vinylTrack.youtube-active) .vinyl-record {
+    opacity: 1;
+    filter: none;
+}
+
+.container.youtube-active .tonearm,
+.container.youtube-active .armholder,
+.container.youtube-active .armholder-circle,
+.container.youtube-active .volume-container {
+    opacity: 1;
+    filter: none;
+}
+
 .container.video-mode #vinylTrack {
     /* display: block; */
     opacity: 1;
@@ -1035,6 +1220,16 @@ input:checked+.slider:before {
     /* Below tonearm but above vinyl */
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.youtube-player-frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+    border: 0;
+    border-radius: inherit;
+    background: #000;
 }
 
 .container.video-mode #localVideo {
@@ -1124,13 +1319,19 @@ input:checked+.slider:before {
 
 .chapter-list {
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    padding: 2px 4px 4px 2px;
 }
 
 .chapter-item {
-    padding: 12px 14px;
+    min-height: 54px;
+    box-sizing: border-box;
+    padding: 10px 12px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
@@ -1140,6 +1341,7 @@ input:checked+.slider:before {
     justify-content: space-between;
     align-items: center;
     font-size: 1rem;
+    gap: 10px;
 }
 
 .chapter-item:hover {
@@ -1149,8 +1351,72 @@ input:checked+.slider:before {
 }
 
 .chapter-time {
-    opacity: 0.6;
-    font-size: 0.9em;
+    min-width: 42px;
+    color: rgba(190, 220, 255, 0.8);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.chapter-number {
+    width: 26px;
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.chapter-item-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chapter-item.active {
+    border-color: rgba(129, 199, 255, 0.5);
+    background: linear-gradient(90deg, rgba(82, 157, 255, 0.22), rgba(255, 255, 255, 0.07));
+    box-shadow: inset 3px 0 rgba(137, 207, 255, 0.9), 0 8px 24px rgba(40, 113, 218, 0.16);
+}
+
+.chapter-item.active .chapter-number,
+.chapter-item.active .chapter-time { color: rgba(210, 236, 255, 0.95); }
+
+.chapter-count {
+    margin-left: auto;
+    margin-right: 12px;
+    color: var(--clr-text-muted);
+    font-size: 0.75rem;
+}
+
+/* M4B chapters are a side drawer, matching the existing Up Next playlist. */
+.chapter-menu {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(390px, 94vw);
+    height: 100vh;
+    max-height: none;
+    transform: translateX(0);
+    box-sizing: border-box;
+    border-radius: 26px 0 0 26px;
+    padding: 24px 18px 24px 20px;
+    animation: chapterDrawerIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes chapterDrawerIn {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.chapter-list { min-height: 0; flex: 1; }
+
+@media (max-width: 600px) {
+    .chapter-menu {
+        width: 100vw;
+        border-radius: 24px 0 0 24px;
+    }
 }
 
 /* Holiday Banner */
@@ -2073,6 +2339,32 @@ input:checked+.slider:before {
     transition: var(--transition-fast);
 }
 
+/* Settings actions use the same glass language as the rest of the controls. */
+.settings-action {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 6px 0 18px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 12px;
+    color: var(--clr-text);
+    background: rgba(255,255,255,.08);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+.settings-action::after { content: '›'; font-size: 1.35rem; color: var(--clr-text-muted); }
+.settings-action:hover { background: rgba(70,160,255,.22); border-color: rgba(120,190,255,.5); transform: translateY(-1px); }
+.formats-modal-content { width: min(760px, calc(100vw - 32px)); max-width: 760px; }
+.formats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.formats-category { box-shadow: inset 0 1px rgba(255,255,255,.05); }
+.formats-category:last-child { grid-column: 1 / -1; border-color: rgba(75,170,255,.4); background: rgba(45,125,210,.12); }
+.formats-category:last-child .format-badge.recommended { background: rgba(70,160,255,.22); border-color: rgba(120,200,255,.48); color: #eaf5ff; }
+@media (max-width: 620px) { .formats-grid { grid-template-columns: 1fr; } .formats-category:last-child { grid-column: auto; } }
+
 .format-badge:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--clr-text);
@@ -2316,142 +2608,4 @@ input:checked+.slider:before {
 .export-cancel-btn {
     font-size: 0.82rem;
     padding: 8px 20px;
-}
-
-/* =====================================================================
-   YTXTube-inspired LIQUID GLASS LAYER
-   A restrained frosted-glass system for the player shell and utility UI.
-   ===================================================================== */
-:root {
-    --glass-surface: rgba(21, 31, 52, 0.56);
-    --glass-surface-strong: rgba(17, 27, 46, 0.78);
-    --glass-highlight: rgba(255, 255, 255, 0.16);
-    --glass-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), 0 2px 12px rgba(0, 0, 0, 0.24);
-}
-
-body {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 18% 18%, rgba(62, 143, 255, 0.23), transparent 34%),
-        radial-gradient(circle at 82% 78%, rgba(162, 76, 255, 0.16), transparent 30%),
-        linear-gradient(145deg, #07111f 0%, #0d1b2a 52%, #111a31 100%);
-}
-
-body::before,
-body::after {
-    content: '';
-    position: fixed;
-    z-index: -1;
-    width: 38vw;
-    height: 38vw;
-    border-radius: 50%;
-    filter: blur(70px);
-    opacity: 0.24;
-    pointer-events: none;
-}
-
-body::before {
-    top: -18vw;
-    left: -10vw;
-    background: #246bce;
-}
-
-body::after {
-    right: -15vw;
-    bottom: -20vw;
-    background: #8b3dca;
-}
-
-.menu-container,
-.controls-container,
-.queue-panel,
-.modal-content,
-.export-progress-card,
-.ffmpeg-modal-content {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035)), var(--glass-surface);
-    border: 1px solid var(--glass-highlight);
-    box-shadow: var(--glass-shadow);
-    -webkit-backdrop-filter: blur(24px) saturate(150%);
-    backdrop-filter: blur(24px) saturate(150%);
-}
-
-.menu-container {
-    border-radius: 22px;
-    overflow: hidden;
-}
-
-.menu-toggle,
-.menu-item,
-.control-btn,
-.modal-btn,
-.speed-select {
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-}
-
-.menu-item:hover,
-.control-btn:hover,
-.modal-btn:hover {
-    background: rgba(255, 255, 255, 0.14) !important;
-    border-color: rgba(255, 255, 255, 0.28) !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
-}
-
-.controls-container {
-    border-radius: 24px;
-    padding: 12px 18px;
-}
-
-.container::before {
-    content: '';
-    position: absolute;
-    inset: -44px -92px;
-    z-index: -1;
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 48px;
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.015));
-    box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 30px 90px rgba(0, 0, 0, 0.28);
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
-    pointer-events: none;
-}
-
-.queue-panel {
-    background-color: var(--glass-surface-strong);
-}
-
-@media (max-width: 600px) {
-    body { overflow-y: auto; }
-    .container::before { inset: -24px -40px; border-radius: 32px; }
-    .controls-container { padding: 10px 12px; }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-    .menu-container, .controls-container, .queue-panel, .modal-content,
-    .export-progress-card, .ffmpeg-modal-content { backdrop-filter: none; }
-}
-
-/* The player itself is the visual hero, not a masked glass card. The generic
-   .glass utility is intentionally limited to the surrounding controls. */
-.container.glass {
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-}
-
-/* Keep the original record scale usable on narrow/high-DPI browser viewports. */
-@media (max-width: 1000px) {
-    .container { scale: clamp(0.62, calc(100vw / 1050), 1); }
-}
-
-@media (max-width: 600px) {
-    .container { scale: clamp(0.5, calc(100vw / 900), 0.72); }
 }
