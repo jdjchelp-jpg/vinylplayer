@@ -8,6 +8,7 @@
     "dev": "npx http-server . -p 8080 -c-1 -o",
     "tauri:dev": "tauri dev",
     "prepare:dist": "node scripts/prepare-dist.mjs",
+    "tauri": "npm run prepare:dist && tauri",
     "tauri:build": "npm run prepare:dist && tauri build"
   },
   "devDependencies": {
