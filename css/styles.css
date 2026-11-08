@@ -1382,6 +1382,19 @@ body .desc-container {
 .chapter-item.active .chapter-number,
 .chapter-item.active .chapter-time { color: rgba(210, 236, 255, 0.95); }
 
+.chapter-loop-btn {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 8px;
+    color: var(--clr-text-muted);
+    background: rgba(255,255,255,.06);
+    cursor: pointer;
+    font: 600 .72rem/1 inherit;
+}
+.chapter-loop-btn:hover,
+.chapter-loop-btn.active { color: #fff; border-color: rgba(120,200,255,.7); background: rgba(70,160,255,.28); }
+
 .chapter-count {
     margin-left: auto;
     margin-right: 12px;
@@ -1395,7 +1408,7 @@ body .desc-container {
     right: 0;
     bottom: 0;
     left: auto;
-    width: min(390px, 94vw);
+    width: min(520px, 94vw);
     height: 100vh;
     max-height: none;
     transform: translateX(0);

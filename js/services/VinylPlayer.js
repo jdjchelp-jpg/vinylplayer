@@ -287,10 +287,10 @@ export class VinylPlayer {
             this.elements.currentTime.textContent = this.formatTime(current);
         }
         if (this.loopMode === 'chapter' && this.chapters.length) {
-            const index = this.chapters.findIndex((chapter, i) => {
-                const next = this.chapters[i + 1]?.startSeconds ?? total;
-                return current >= chapter.startSeconds && current < next;
-            });
+            let index = -1;
+            for (let i = this.chapters.length - 1; i >= 0; i--) {
+                if (current >= Number(this.chapters[i].startSeconds || 0)) { index = i; break; }
+            }
             if (index >= 0) {
                 const end = this.chapters[index + 1]?.startSeconds ?? total;
                 if (current >= end - 0.08) {
@@ -1733,7 +1733,7 @@ export class VinylPlayer {
             div.className = `chapter-item${index === this.currentChapterIndex ? ' active' : ''}`;
             div.setAttribute('role', 'button');
             div.setAttribute('tabindex', '0');
-            div.innerHTML = `<span class="chapter-number">${String(index + 1).padStart(2, '0')}</span><span class="chapter-item-title">${this._escHtml(chapter.title || `Chapter ${index + 1}`)}</span><span class="chapter-time">${this.formatTime(chapter.startSeconds)}</span>`;
+            div.innerHTML = `<span class="chapter-number">${String(index + 1).padStart(2, '0')}</span><span class="chapter-item-title">${this._escHtml(chapter.title || `Chapter ${index + 1}`)}</span><span class="chapter-time">${this.formatTime(chapter.startSeconds)}</span><button class="chapter-loop-btn${this.loopMode === 'chapter' && this.currentChapterIndex === index ? ' active' : ''}" type="button" aria-label="Loop this chapter">Loop</button>`;
             const selectChapter = () => {
                 this.chapters.forEach((_, chapterIndex) => {
                     this.elements.chapterList.children[chapterIndex]?.classList.toggle('active', chapterIndex === index);
@@ -1749,6 +1749,17 @@ export class VinylPlayer {
                 this.updateChapterPill(chapter.title);
             };
             div.addEventListener('click', selectChapter);
+            div.querySelector('.chapter-loop-btn').addEventListener('click', (event) => {
+                event.stopPropagation();
+                this.loopMode = 'chapter';
+                localStorage.setItem('loopMode', 'chapter');
+                if (this.elements.loopModeSelect) this.elements.loopModeSelect.value = 'chapter';
+                this.currentChapterIndex = index;
+                const media = this.isVideo ? this.localVideo : this.localAudio;
+                media.currentTime = Number(chapter.startSeconds || 0);
+                media.play().catch(() => {});
+                this.renderChapters();
+            });
             div.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectChapter(); }
             });
