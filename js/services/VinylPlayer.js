@@ -1354,7 +1354,7 @@ export class VinylPlayer {
         const fileLabel = document.querySelector('label[class="menu-item"] span');
         if (fileLabel) fileLabel.textContent = t.loadFromFile;
 
-        if (this.elements.urlInput) this.elements.urlInput.placeholder = 'Enter audio file URL (MP3, FLAC, etc.)';
+        if (this.elements.urlInput) this.elements.urlInput.placeholder = 'Enter audio URL, like MP3, FLAC, etc. YouTube playlists, videos, or songs';
         if (document.getElementById('feedbackText')) document.getElementById('feedbackText').placeholder = t.yourFeedback;
     }
     updateSettings() {
