@@ -280,6 +280,10 @@ export class ExportEngine {
         vinylImage.src = new URL('images/vinyl.png', document.baseURI).href;
         await new Promise(resolve => { vinylImage.onload = resolve; vinylImage.onerror = resolve; });
         this.player.exportVinylImage = vinylImage;
+        const tonearmImage = new Image();
+        tonearmImage.src = new URL('images/tonearm.png', document.baseURI).href;
+        await new Promise(resolve => { tonearmImage.onload = resolve; tonearmImage.onerror = resolve; });
+        this.player.exportTonearmImage = tonearmImage;
         if (background) {
             const backgroundImage = new Image();
             backgroundImage.src = URL.createObjectURL(background);
@@ -355,6 +359,7 @@ export class ExportEngine {
 
             this.player.exportMode = false;
             this.player.exportVinylImage = null;
+            this.player.exportTonearmImage = null;
             this.player.exportBackgroundImage = null;
             recorder?.stop();
             await new Promise(resolve => recorder ? recorder.addEventListener('stop', resolve, { once: true }) : resolve());

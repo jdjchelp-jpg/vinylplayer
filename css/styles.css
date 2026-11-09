@@ -1379,8 +1379,8 @@ body .desc-container {
     box-shadow: inset 3px 0 rgba(137, 207, 255, 0.9), 0 8px 24px rgba(40, 113, 218, 0.16);
 }
 
-.chapter-item.active .chapter-number,
 .chapter-item.active .chapter-time { color: rgba(210, 236, 255, 0.95); }
+.chapter-item.active .chapter-item-title { color: #fff; font-weight: 700; }
 
 .chapter-loop-btn {
     flex: 0 0 auto;
@@ -1408,7 +1408,7 @@ body .desc-container {
     right: 0;
     bottom: 0;
     left: auto;
-    width: min(520px, 94vw);
+    width: min(680px, 94vw);
     height: 100vh;
     max-height: none;
     transform: translateX(0);

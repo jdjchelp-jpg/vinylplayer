@@ -1735,7 +1735,7 @@ export class VinylPlayer {
             div.className = `chapter-item${index === this.currentChapterIndex ? ' active' : ''}`;
             div.setAttribute('role', 'button');
             div.setAttribute('tabindex', '0');
-            div.innerHTML = `<span class="chapter-number">${String(index + 1).padStart(2, '0')}</span><span class="chapter-item-title">${this._escHtml(chapter.title || `Chapter ${index + 1}`)}</span><span class="chapter-time">${this.formatTime(chapter.startSeconds)}</span><button class="chapter-loop-btn${this.loopMode === 'chapter' && this.currentChapterIndex === index ? ' active' : ''}" type="button" aria-label="Loop this chapter">Loop</button>`;
+            div.innerHTML = `<span class="chapter-item-title">${this._escHtml(chapter.title || `Chapter ${index + 1}`)}</span><span class="chapter-time">${this.formatTime(chapter.startSeconds)}</span><button class="chapter-loop-btn${this.loopMode === 'chapter' && this.currentChapterIndex === index ? ' active' : ''}" type="button" aria-label="Loop this chapter">Loop</button>`;
             const selectChapter = () => {
                 this.chapters.forEach((_, chapterIndex) => {
                     this.elements.chapterList.children[chapterIndex]?.classList.toggle('active', chapterIndex === index);
@@ -1873,13 +1873,27 @@ export class VinylPlayer {
             const scale = Math.max(recordSize / this.exportVinylImage.width, recordSize / this.exportVinylImage.height);
             const iw = this.exportVinylImage.width * scale;
             const ih = this.exportVinylImage.height * scale;
-            ctx.drawImage(this.exportVinylImage, cx - iw / 2, cy - ih / 2, iw, ih);
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate((time * Math.PI * 2) / 8);
+            ctx.drawImage(this.exportVinylImage, -iw / 2, -ih / 2, iw, ih);
+            ctx.restore();
         } else {
             ctx.fillStyle = '#090909'; ctx.fill();
             ctx.strokeStyle = 'rgba(255,255,255,.2)';
             for (let i = 1; i < 18; i++) { ctx.beginPath(); ctx.arc(cx, cy, recordSize * i / 36, 0, Math.PI * 2); ctx.stroke(); }
         }
         ctx.restore();
+        if (this.exportTonearmImage?.complete) {
+            const armHeight = recordSize * 0.92;
+            const armWidth = armHeight * (this.exportTonearmImage.width / this.exportTonearmImage.height);
+            ctx.save();
+            ctx.translate(cx + recordSize * 0.32, cy - recordSize * 0.34);
+            ctx.rotate(0.12 + Math.min(0.32, (time / Math.max(duration || 1, 1)) * 0.32));
+            ctx.globalAlpha = 0.96;
+            ctx.drawImage(this.exportTonearmImage, -armWidth * 0.18, 0, armWidth, armHeight);
+            ctx.restore();
+        }
         ctx.fillStyle = 'rgba(255,255,255,.08)';
         ctx.fillRect(panelWidth, 0, 2, height);
         ctx.fillStyle = '#fff';
@@ -1890,12 +1904,29 @@ export class VinylPlayer {
         let active = 0;
         chapters.forEach((chapter, index) => { if (time >= Number(chapter.startSeconds || 0)) active = index; });
         ctx.font = `${Math.max(16, height * .026)}px Arial`;
-        chapters.slice(0, 18).forEach((chapter, index) => {
-            const y = 112 + index * Math.max(28, height * .045);
-            ctx.fillStyle = index === active ? '#ffffff' : 'rgba(255,255,255,.62)';
-            ctx.font = `${index === active ? '700' : '400'} ${Math.max(16, height * .026)}px Arial`;
-            ctx.fillText(`${this.formatTime(chapter.startSeconds)}  ${chapter.title || `Chapter ${index + 1}`}`, panelWidth + 34, y);
+        const columns = chapters.length > 24 ? 2 : 1;
+        const rows = Math.ceil(Math.max(chapters.length, 1) / columns);
+        const columnWidth = (width - panelWidth - 58) / columns;
+        const rowHeight = Math.max(18, Math.min(34, (height - 132) / Math.max(rows, 1)));
+        const fontSize = Math.max(11, Math.min(23, rowHeight * .62));
+        chapters.forEach((chapter, index) => {
+            const column = Math.floor(index / rows);
+            const row = index % rows;
+            const x = panelWidth + 28 + column * columnWidth;
+            const y = 104 + row * rowHeight;
+            const title = `${this.formatTime(chapter.startSeconds)}  ${chapter.title || `Chapter ${index + 1}`}`;
+            ctx.fillStyle = index === active ? (this.exportTheme === 'christmas' ? '#ffd166' : '#73d2ff') : 'rgba(255,255,255,.68)';
+            ctx.font = `${index === active ? '700' : '400'} ${fontSize}px Arial`;
+            ctx.fillText(title, x, y, Math.max(20, columnWidth - 10));
         });
+        if (this.exportTheme === 'christmas') {
+            ctx.fillStyle = 'rgba(255,255,255,.7)';
+            for (let i = 0; i < 42; i++) {
+                const x = (i * 173 + 41) % width;
+                const y = ((i * 97 + time * (10 + (i % 4) * 3)) % (height + 30)) - 15;
+                ctx.beginPath(); ctx.arc(x, y, 1.5 + (i % 3), 0, Math.PI * 2); ctx.fill();
+            }
+        }
         ctx.fillStyle = 'rgba(255,255,255,.65)';
         ctx.font = `${Math.max(14, height * .022)}px Arial`;
         ctx.fillText(`${this.formatTime(time)} / ${this.formatTime(duration || 0)}`, panelWidth + 34, height - 34);
